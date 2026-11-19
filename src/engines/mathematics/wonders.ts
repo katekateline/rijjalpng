@@ -460,8 +460,9 @@ export function drawFractal(
   cssH: number,
   view: FractalView,
 ): number {
-  const rw = Math.min(720, Math.max(240, Math.round(cssW)));
-  const rh = Math.max(180, Math.round(rw * (cssH / cssW)));
+  // shortcut: render capped at 720px wide and upscaled. Deep zooms soften on
+  // large screens; move to WebGL if crisp deep zoom becomes a requirement.
+  const rw = Math.min(720, Math.max(240, Math.round(cssW)));  const rh = Math.max(180, Math.round(rw * (cssH / cssW)));
   if (!offscreen) {
     offscreen = document.createElement("canvas");
     offctx = offscreen.getContext("2d");
