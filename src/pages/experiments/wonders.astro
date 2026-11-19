@@ -1,0 +1,847 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+
+<Base title="SORT//VOID — Mathematical Wonders" description="Golden ratio, Pi, Fibonacci, fractals, Lissajous curves and Fourier series as interactive generative art.">
+  <div class="page-head">
+    <div>
+      <div class="crumb"><a href="/experiments/">EXPERIMENTS</a> / MATHEMATICAL WONDERS</div>
+      <h1>MATHEMATICAL <em>WONDERS</em></h1>
+      <p>Constants, curves and fractals turned into interactive form. Every pixel is computed live; pan, zoom and mutate the parameters to see the structure underneath.</p>
+    </div>
+    <div class="head-index">EXP_04<br /><b>MATHEMATICAL WONDERS</b><br />7 SYSTEMS</div>
+  </div>
+
+  <section class="console panel" id="console" aria-label="Generative mathematics visualiser">
+    <div class="panel-head">
+      <span class="title">WONDER ENGINE / CANVAS</span>
+      <span id="engine-state">READY</span>
+    </div>
+
+    <div class="controls">
+      <label class="field">EXPERIMENT
+        <select id="mode-select">
+          <option value="golden">GOLDEN RATIO</option>
+          <option value="pi">PI / MONTE CARLO</option>
+          <option value="fibonacci">FIBONACCI SEQUENCE</option>
+          <option value="mandelbrot">MANDELBROT EXPLORER</option>
+          <option value="julia">JULIA EXPLORER</option>
+          <option value="lissajous">LISSAJOUS CURVES</option>
+          <option value="fourier">FOURIER SERIES</option>
+        </select>
+      </label>
+      <div class="param-grid" id="param-host"></div>
+    </div>
+
+    <div class="console-grid">
+      <div class="viz-col">
+        <div class="viz-head">
+          <span>FIELD BUFFER <b id="mode-tag">GOLDEN</b></span>
+          <span id="op-readout">T+0.00s</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="wonder-canvas" class="viz-canvas" role="img" aria-label="Generated mathematical artwork"></canvas>
+          <span class="canvas-hint" id="canvas-hint">CANVAS 2D</span>
+        </div>
+        <div class="viz-foot">
+          <span id="foot-formula">φ = (1 + √5) / 2</span>
+          <span>CPU / LIVE RENDER</span>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="panel-head"><span class="title">TELEMETRY</span><span>LIVE</span></div>
+        <dl class="telemetry">
+          <div class="metric metric--wide">
+            <dt>SYSTEM</dt>
+            <dd id="stat-mode" class="accent">GOLDEN RATIO</dd>
+          </div>
+          <div class="metric"><dt id="m1k">PHI</dt><dd id="m1v">—</dd></div>
+          <div class="metric"><dt id="m2k">DEPTH</dt><dd id="m2v">—</dd></div>
+          <div class="metric"><dt id="m3k">APPROX</dt><dd id="m3v">—</dd></div>
+          <div class="metric"><dt id="m4k">STATE</dt><dd id="m4v">—</dd></div>
+          <div class="metric metric--wide">
+            <dt>FORMULA</dt>
+            <dd id="stat-formula">φ = (1 + √5) / 2</dd>
+          </div>
+        </dl>
+
+        <div class="transport">
+          <button class="btn btn--primary" id="btn-play" type="button">▶ RUN</button>
+          <button class="btn" id="btn-mutate" type="button">⤨ MUTATE</button>
+          <button class="btn btn--ghost" id="btn-reset" type="button" style="grid-column: span 2">↺ RESET</button>
+        </div>
+
+        <div class="hint-row">
+          <span><span class="kbd">SPACE</span> RUN/PAUSE</span>
+          <span><span class="kbd">M</span> MUTATE</span>
+          <span><span class="kbd">R</span> RESET</span>
+          <span id="mouse-hint" hidden><span class="kbd">DRAG</span> PAN · <span class="kbd">WHEEL</span> ZOOM</span>
+        </div>
+
+        <div class="side-note">
+          <span class="overline">NOTE</span>
+          <p id="side-note"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="brief">
+    <div class="brief-main">
+      <div class="eyebrow">SYSTEM BRIEF</div>
+      <h2 id="brief-name">Golden Ratio</h2>
+      <p id="brief-desc"></p>
+    </div>
+    <dl class="complexity" id="complexity"></dl>
+  </section>
+</Base>
+
+<style>
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.9fr) minmax(0, 2.4fr);
+    gap: 0.8rem;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--line);
+    background: #070b09;
+    align-items: end;
+  }
+
+  .console-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.75fr);
+  }
+
+  .viz-col { min-width: 0; }
+
+  .viz-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .viz-head b { color: var(--green); font-weight: 400; }
+
+  #op-readout {
+    color: var(--cyan);
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #wonder-canvas { height: 470px; touch-action: none; }
+  #wonder-canvas.is-pan { cursor: grab; }
+  #wonder-canvas.is-pan:active { cursor: grabbing; }
+  @media (max-width: 1100px) { #wonder-canvas { height: 410px; } }
+  @media (max-width: 620px) { #wonder-canvas { height: 320px; } }
+
+  .viz-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0.85rem;
+    border-top: 1px solid var(--line);
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .side-col { border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .side-col > * { flex-shrink: 0; }
+
+  .transport {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .hint-row { padding: 0.75rem 0.8rem; border-bottom: 1px solid var(--line); }
+
+  .side-note { padding: 0.9rem; font-size: 10px; color: var(--muted); line-height: 1.65; margin-top: auto; }
+  .side-note p { margin-top: 0.35rem; }
+
+  .brief {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
+    gap: 2rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .brief h2 { font-size: clamp(1.4rem, 3vw, 2.2rem); letter-spacing: -0.03em; margin: 0.5rem 0 0.6rem; }
+  .brief-main p { color: var(--muted); max-width: 68ch; font-size: 12px; line-height: 1.7; }
+
+  .complexity {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    align-self: start;
+  }
+
+  .complexity div { padding: 0.55rem 0.7rem; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .complexity dt { font-size: 8px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .complexity dd { margin: 2px 0 0; font-size: 12px; color: var(--green); }
+
+  @media (max-width: 900px) {
+    .controls { grid-template-columns: 1fr; }
+    .console-grid { grid-template-columns: 1fr; }
+    .side-col { border-left: 0; border-top: 1px solid var(--line); }
+    .brief { grid-template-columns: 1fr; gap: 1.25rem; }
+  }
+</style>
+
+<script>
+  import {
+    MonteCarloPi,
+    PHI,
+    drawFibonacci,
+    drawFourier,
+    drawFractal,
+    drawGolden,
+    drawLissajous,
+    fibonacciNumbers,
+  } from "../../engines/mathematics/wonders";
+  import type { FractalView, Waveform } from "../../engines/mathematics/wonders";
+  import { audio } from "../../engines/audio/audio";
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  type WonderId = "golden" | "pi" | "fibonacci" | "mandelbrot" | "julia" | "lissajous" | "fourier";
+
+  type Param = {
+    key: string;
+    label: string;
+    kind: "range" | "select";
+    min?: number;
+    max?: number;
+    step?: number;
+    value: number | string;
+    options?: { value: string; label: string }[];
+    format?: (value: number) => string;
+  };
+
+  const PALETTE_OPTIONS = [
+    { value: "phosphor", label: "PHOSPHOR" },
+    { value: "ice", label: "ICE" },
+    { value: "ember", label: "EMBER" },
+  ];
+
+  const WAVE_OPTIONS = [
+    { value: "square", label: "SQUARE" },
+    { value: "saw", label: "SAWTOOTH" },
+    { value: "triangle", label: "TRIANGLE" },
+  ];
+
+  interface Mode {
+    name: string;
+    tag: string;
+    formula: string;
+    note: string;
+    desc: string;
+    cells: [string, string][];
+    params: Param[];
+    animated: boolean;
+  }
+
+  const MODES: Record<WonderId, Mode> = {
+    golden: {
+      name: "Golden Ratio",
+      tag: "GOLDEN",
+      formula: "φ = (1 + √5) / 2 ≈ 1.6180339887",
+      note: "Each square is carved from the longer side of the remaining rectangle. The quarter-turn spiral passes through every square; the proportions never change as the construction shrinks.",
+      desc: "The golden ratio is the unique proportion where the whole relates to the larger part as the larger part relates to the smaller. Nesting squares inside a golden rectangle and sweeping a quarter-circle through each one produces the golden spiral, a shape that reappears in shells, storms and galaxy arms.",
+      cells: [
+        ["PROPORTION", "1 : 1.618…"],
+        ["CONSTRUCTION", "NESTED SQUARES"],
+        ["SPIRAL", "LOGARITHMIC"],
+        ["ANIMATION", "REVEAL"],
+        ["RENDER", "CANVAS 2D"],
+        ["PALETTE", "PHOSPHOR"],
+      ],
+      params: [{ key: "depth", label: "DEPTH · SQUARES", kind: "range", min: 4, max: 14, step: 1, value: 10 }],
+      animated: true,
+    },
+    pi: {
+      name: "Pi / Monte Carlo",
+      tag: "PI",
+      formula: "π ≈ 4 · inside / total",
+      note: "Points land uniformly in the unit square. The ratio of points inside the quarter circle to all points approaches π/4, so multiplying by four estimates π. More samples, smaller error — slowly.",
+      desc: "Pi is the ratio of a circle's circumference to its diameter. Monte Carlo estimation finds it without geometry: scatter random points in a square, count how many fall inside the inscribed circle, and multiply the fraction by four. The error shrinks as one over the square root of the sample count.",
+      cells: [
+        ["CONSTANT", "3.1415926535…"],
+        ["METHOD", "MONTE CARLO"],
+        ["DOMAIN", "UNIT SQUARE"],
+        ["ESTIMATOR", "4 · INSIDE / TOTAL"],
+        ["ERROR", "|π − π̂|"],
+        ["RENDER", "CANVAS 2D"],
+      ],
+      params: [{ key: "rate", label: "SAMPLE RATE · PTS/S", kind: "range", min: 100, max: 5000, step: 100, value: 1200 }],
+      animated: true,
+    },
+    fibonacci: {
+      name: "Fibonacci Sequence",
+      tag: "FIBONACCI",
+      formula: "F(n) = F(n−1) + F(n−2)",
+      note: "Consecutive Fibonacci numbers approach the golden ratio: 1, 1, 2, 3, 5, 8, 13… Each new square is the sum of the two before it, so the tiling grows into a spiral.",
+      desc: "Start with 1 and 1, then add the last two numbers forever. The sequence appears in sunflower seeds, pine cones and branching plants, and the ratio of consecutive terms converges to the golden ratio. Here the numbers are laid out as squares that grow into a spiral.",
+      cells: [
+        ["SEQUENCE", "F(n−1) + F(n−2)"],
+        ["SEED", "1, 1"],
+        ["LIMIT RATIO", "φ"],
+        ["CONVERGENCE", "OSCILLATING"],
+        ["LAYOUT", "SQUARE TILING"],
+        ["RENDER", "CANVAS 2D"],
+      ],
+      params: [{ key: "count", label: "TERMS", kind: "range", min: 5, max: 16, step: 1, value: 10 }],
+      animated: true,
+    },
+    mandelbrot: {
+      name: "Mandelbrot Explorer",
+      tag: "MANDELBROT",
+      formula: "z ← z² + c",
+      note: "Drag to pan, scroll to zoom. Points whose orbit stays bounded under z² + c belong to the set; escape-time colouring reveals the filigree around the boundary.",
+      desc: "The Mandelbrot set is the collection of complex constants c for which the orbit of zero never escapes to infinity under z² + c. Zoom far enough and the same bulbous shapes keep reappearing, each with its own miniature copies of the whole.",
+      cells: [
+        ["DOMAIN", "COMPLEX PLANE"],
+        ["ITERATION", "z² + c"],
+        ["ESCAPE", "|z| > 2"],
+        ["CONTROL", "PAN / ZOOM"],
+        ["COLOURING", "SMOOTH ESCAPE"],
+        ["RENDER", "CANVAS 2D"],
+      ],
+      params: [
+        { key: "iterations", label: "ITERATION LIMIT", kind: "range", min: 40, max: 320, step: 10, value: 120 },
+        { key: "palette", label: "PALETTE", kind: "select", value: "phosphor", options: PALETTE_OPTIONS },
+      ],
+      animated: false,
+    },
+    julia: {
+      name: "Julia Explorer",
+      tag: "JULIA",
+      formula: "z ← z² + c, c fixed",
+      note: "Where Mandelbrot varies c per point, a Julia set fixes c and varies the starting z. Move the real and imaginary parts of c to travel between connected, dust-like and dendrite forms.",
+      desc: "A Julia set is the boundary between starting points whose orbits stay bounded and those that escape, for one fixed complex constant c. Different constants produce radically different organisms; animating c through the complex plane walks through the family hidden inside the Mandelbrot map.",
+      cells: [
+        ["DOMAIN", "COMPLEX PLANE"],
+        ["ITERATION", "z² + c"],
+        ["CONSTANT", "USER c"],
+        ["CONTROL", "PAN / ZOOM"],
+        ["COLOURING", "SMOOTH ESCAPE"],
+        ["RENDER", "CANVAS 2D"],
+      ],
+      params: [
+        { key: "iterations", label: "ITERATION LIMIT", kind: "range", min: 40, max: 320, step: 10, value: 150 },
+        { key: "re", label: "C · REAL", kind: "range", min: -1, max: 1, step: 0.005, value: -0.8, format: (v) => v.toFixed(3) },
+        { key: "im", label: "C · IMAG", kind: "range", min: -1, max: 1, step: 0.005, value: 0.156, format: (v) => v.toFixed(3) },
+        { key: "palette", label: "PALETTE", kind: "select", value: "ice", options: PALETTE_OPTIONS },
+      ],
+      animated: false,
+    },
+    lissajous: {
+      name: "Lissajous Curves",
+      tag: "LISSAJOUS",
+      formula: "x = A sin(a·t + φ),  y = A sin(b·t)",
+      note: "Two perpendicular sine waves with different frequencies trace a ribbon. When the frequency ratio is rational the curve closes; the phase shifts the whole figure, and the marker shows the instantaneous position.",
+      desc: "Lissajous figures come from plotting two harmonic oscillations against each other. The ratio of frequencies decides how many lobes appear, while the phase difference rotates the shape. The same curves appear on oscilloscopes whenever two signals are compared.",
+      cells: [
+        ["X AXIS", "SIN(a·t + φ)"],
+        ["Y AXIS", "SIN(b·t)"],
+        ["RATIO", "a : b"],
+        ["PHASE", "0 … 2π"],
+        ["CLOSED WHEN", "RATIONAL RATIO"],
+        ["RENDER", "CANVAS 2D"],
+      ],
+      params: [
+        { key: "a", label: "FREQUENCY A", kind: "range", min: 1, max: 12, step: 1, value: 3 },
+        { key: "b", label: "FREQUENCY B", kind: "range", min: 1, max: 12, step: 1, value: 2 },
+        { key: "phase", label: "PHASE", kind: "range", min: 0, max: 628, step: 2, value: 78, format: (v) => `${(v / 100).toFixed(2)} rad` },
+        { key: "amplitude", label: "AMPLITUDE", kind: "range", min: 30, max: 100, step: 1, value: 88, format: (v) => `${v}%` },
+      ],
+      animated: true,
+    },
+    fourier: {
+      name: "Fourier Series",
+      tag: "FOURIER",
+      formula: "f(t) ≈ Σ aₙ sin(n·t)",
+      note: "Each circle is one harmonic; the chain of rotating vectors ends at a point whose height is the waveform. Add harmonics and the square edge sharpens — Gibbs ringing never fully disappears.",
+      desc: "Any periodic function can be rebuilt from a sum of sine and cosine waves. A Fourier series draws that sum with rotating vectors: each vector's length is a coefficient, its rotation speed a harmonic number. The trailing line is the generated waveform.",
+      cells: [
+        ["DECOMPOSITION", "SUM OF SINES"],
+        ["VECTORS", "EPICYCLE CHAIN"],
+        ["HARMONICS", "1 … 24"],
+        ["PRESETS", "SQUARE / SAW / TRI"],
+        ["DRAWN", "WAVEFORM BUFFER"],
+        ["RENDER", "CANVAS 2D"],
+      ],
+      params: [
+        { key: "harmonics", label: "HARMONICS", kind: "range", min: 1, max: 24, step: 1, value: 12 },
+        { key: "wave", label: "WAVEFORM", kind: "select", value: "square", options: WAVE_OPTIONS },
+      ],
+      animated: true,
+    },
+  };
+
+  const consoleEl = $("console");
+  const modeSelect = $<HTMLSelectElement>("mode-select");
+  const paramHost = $("param-host");
+  const canvas = $<HTMLCanvasElement>("wonder-canvas");
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  const stateEl = $("engine-state");
+  const opEl = $("op-readout");
+  const modeTag = $("mode-tag");
+  const statMode = $("stat-mode");
+  const statFormula = $("stat-formula");
+  const footFormula = $("foot-formula");
+  const sideNote = $("side-note");
+  const briefName = $("brief-name");
+  const briefDesc = $("brief-desc");
+  const complexityEl = $("complexity");
+  const canvasHint = $("canvas-hint");
+  const mouseHint = $("mouse-hint");
+  const m1k = $("m1k");
+  const m1v = $("m1v");
+  const m2k = $("m2k");
+  const m2v = $("m2v");
+  const m3k = $("m3k");
+  const m3v = $("m3v");
+  const m4k = $("m4k");
+  const m4v = $("m4v");
+  const playBtn = $<HTMLButtonElement>("btn-play");
+  const mutateBtn = $<HTMLButtonElement>("btn-mutate");
+  const resetBtn = $<HTMLButtonElement>("btn-reset");
+
+  const params = new URLSearchParams(location.search);
+  const requested = params.get("exp");
+  let mode: WonderId = (["golden", "pi", "fibonacci", "mandelbrot", "julia", "lissajous", "fourier"] as WonderId[]).includes(requested as WonderId)
+    ? (requested as WonderId)
+    : "golden";
+
+  let values: Record<string, number | string> = {};
+  let time = 0;
+  let playing = false;
+  let raf = 0;
+  let last = 0;
+  let cssW = 0;
+  let cssH = 0;
+  let renderMs = 0;
+  let lastAmbient = 0;
+  let autoAcc = 0;
+  let dragging = false;
+  let lastPointer = { x: 0, y: 0 };
+  let view: FractalView = { type: "mandelbrot", cx: -0.6, cy: 0, zoom: 1, iterations: 120, palette: "phosphor", juliaRe: -0.8, juliaIm: 0.156 };
+  let buffer: number[] = [];
+  const pi = new MonteCarloPi();
+
+  const isFractal = () => mode === "mandelbrot" || mode === "julia";
+  const num = (key: string) => Number(values[key]);
+
+  function defaults() {
+    values = {};
+    for (const p of MODES[mode].params) values[p.key] = p.value;
+  }
+
+  function resetView() {
+    view = {
+      type: mode === "julia" ? "julia" : "mandelbrot",
+      cx: mode === "julia" ? 0 : -0.6,
+      cy: 0,
+      zoom: 1,
+      iterations: num("iterations") || 120,
+      palette: (values.palette as FractalView["palette"]) || "phosphor",
+      juliaRe: num("re") ?? -0.8,
+      juliaIm: num("im") ?? 0.156,
+    };
+  }
+
+  function buildParams() {
+    paramHost.innerHTML = MODES[mode].params
+      .map((p) => {
+        if (p.kind === "select") {
+          const opts = (p.options ?? [])
+            .map((o) => `<option value="${o.value}"${o.value === p.value ? " selected" : ""}>${o.label}</option>`)
+            .join("");
+          return `<label class="field">${p.label}<select data-key="${p.key}">${opts}</select></label>`;
+        }
+        const shown = p.format ? p.format(Number(p.value)) : String(p.value);
+        return `<label class="field">${p.label}<input data-key="${p.key}" type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.value}" /><output data-out="${p.key}">${shown}</output></label>`;
+      })
+      .join("");
+
+    paramHost.querySelectorAll<HTMLInputElement>("input[type='range']").forEach((input) => {
+      input.addEventListener("input", () => {
+        const key = input.dataset.key as string;
+        const def = MODES[mode].params.find((p) => p.key === key);
+        values[key] = Number(input.value);
+        const out = paramHost.querySelector<HTMLOutputElement>(`output[data-out="${key}"]`);
+        if (out && def?.format) out.textContent = def.format(Number(input.value));
+        if (key === "iterations") view.iterations = Number(input.value);
+        if (key === "re" || key === "im") resetView();
+        scheduleDraw();
+      });
+    });
+
+    paramHost.querySelectorAll<HTMLSelectElement>("select").forEach((select) => {
+      select.addEventListener("change", () => {
+        const key = select.dataset.key as string;
+        values[key] = select.value;
+        if (key === "palette") view.palette = select.value as FractalView["palette"];
+        scheduleDraw();
+      });
+    });
+  }
+
+  function renderBrief() {
+    const meta = MODES[mode];
+    briefName.textContent = meta.name;
+    briefDesc.textContent = meta.desc;
+    sideNote.textContent = meta.note;
+    statMode.textContent = meta.name.toUpperCase();
+    statFormula.textContent = meta.formula;
+    footFormula.textContent = meta.formula;
+    modeTag.textContent = meta.tag;
+    complexityEl.innerHTML = meta.cells.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+    mouseHint.hidden = !isFractal();
+    canvasHint.textContent = isFractal() ? "DRAG TO PAN · WHEEL TO ZOOM" : "CANVAS 2D · LIVE";
+    canvas.classList.toggle("is-pan", isFractal());
+  }
+
+  function resize() {
+    cssW = canvas.parentElement ? canvas.parentElement.clientWidth : 600;
+    cssH = Number.parseFloat(getComputedStyle(canvas).height) || 420;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    pi.resize(cssW, cssH);
+    draw();
+  }
+
+  function draw() {
+    if (!cssW) return;
+    const w = cssW;
+    const h = cssH;
+
+    if (mode === "golden") {
+      drawGolden(ctx, w, h, time, { depth: num("depth"), animate: playing });
+    } else if (mode === "fibonacci") {
+      drawFibonacci(ctx, w, h, time, { count: num("count"), animate: playing });
+    } else if (mode === "pi") {
+      pi.draw(ctx, w, h);
+    } else if (mode === "lissajous") {
+      drawLissajous(ctx, w, h, time, {
+        a: num("a"),
+        b: num("b"),
+        phase: num("phase") / 100,
+        amplitude: num("amplitude") / 100,
+      });
+    } else if (mode === "fourier") {
+      drawFourier(ctx, w, h, time * 1.6, { waveform: values.wave as Waveform, harmonics: num("harmonics") }, buffer);
+    } else if (isFractal()) {
+      view.iterations = num("iterations");
+      view.juliaRe = num("re");
+      view.juliaIm = num("im");
+      view.palette = (values.palette as FractalView["palette"]) || "phosphor";
+      renderMs = drawFractal(ctx, w, h, view);
+    }
+
+    updateStats();
+  }
+
+  function updateStats() {
+    let cells: [string, string][];
+    if (mode === "golden") {
+      const f = fibonacciNumbers(num("depth") + 3);
+      const ratio = f[num("depth") + 2] / f[num("depth") + 1];
+      cells = [
+        ["PHI", PHI.toFixed(9)],
+        ["DEPTH", `${num("depth")} SQUARES`],
+        ["FIB RATIO", ratio.toFixed(9)],
+        ["STATE", playing ? "CONSTRUCTING" : "STILL"],
+      ];
+    } else if (mode === "fibonacci") {
+      const f = fibonacciNumbers(num("count"));
+      const ratio = f[f.length - 1] / f[f.length - 2];
+      cells = [
+        ["TERMS", String(num("count"))],
+        ["LAST VALUE", String(f[f.length - 1])],
+        ["RATIO", ratio.toFixed(7)],
+        ["STATE", playing ? "GROWING" : "STILL"],
+      ];
+    } else if (mode === "pi") {
+      const err = Math.abs(Math.PI - pi.estimate);
+      cells = [
+        ["POINTS", pi.total.toLocaleString("en-US")],
+        ["ESTIMATE", pi.total ? pi.estimate.toFixed(8) : "—"],
+        ["ERROR", pi.total ? err.toFixed(8) : "—"],
+        ["INSIDE", pi.total ? `${((pi.inside / pi.total) * 100).toFixed(2)}%` : "—"],
+      ];
+    } else if (isFractal()) {
+      cells = [
+        [mode === "julia" ? "C" : "CENTER", mode === "julia" ? `${view.juliaRe.toFixed(3)} + ${view.juliaIm.toFixed(3)}i` : `${view.cx.toFixed(4)}, ${view.cy.toFixed(4)}`],
+        ["ZOOM", `${view.zoom < 10 ? view.zoom.toFixed(2) : view.zoom.toExponential(1)}×`],
+        ["ITERATIONS", String(view.iterations)],
+        ["RENDER", renderMs > 0 ? `${renderMs.toFixed(1)} ms` : "—"],
+      ];
+    } else if (mode === "lissajous") {
+      cells = [
+        ["FREQ A", String(num("a"))],
+        ["FREQ B", String(num("b"))],
+        ["PHASE", `${(num("phase") / 100).toFixed(2)} rad`],
+        ["STATE", playing ? "TRACING" : "STILL"],
+      ];
+    } else {
+      cells = [
+        ["HARMONICS", String(num("harmonics"))],
+        ["WAVEFORM", String(values.wave).toUpperCase()],
+        ["VECTORS", String(num("harmonics"))],
+        ["STATE", playing ? "DRAWING" : "STILL"],
+      ];
+    }
+
+    m1k.textContent = cells[0][0];
+    m1v.textContent = cells[0][1];
+    m2k.textContent = cells[1][0];
+    m2v.textContent = cells[1][1];
+    m3k.textContent = cells[2][0];
+    m3v.textContent = cells[2][1];
+    m4k.textContent = cells[3][0];
+    m4v.textContent = cells[3][1];
+
+    statFormula.textContent = MODES[mode].formula;
+    stateEl.textContent = playing ? "RENDERING" : time > 0 ? "PAUSED" : "READY";
+    opEl.textContent = isFractal() ? (renderMs > 0 ? `RENDER ${renderMs.toFixed(1)}ms` : `T+${time.toFixed(2)}s`) : `T+${time.toFixed(2)}s`;
+    playBtn.textContent = playing ? "❚❚ PAUSE" : isFractal() ? "▶ AUTO ZOOM" : time > 0 ? "▶ RESUME" : "▶ RUN";
+  }
+
+  function step(dt: number) {
+    time += dt;
+    if (mode === "pi") {
+      const add = Math.max(1, Math.min(5000, Math.round(num("rate") * dt)));
+      pi.add(add);
+    }
+    if (isFractal()) {
+      view.zoom *= 1 + dt * 0.22;
+      if (view.zoom > 3000) view.zoom = 3000;
+    }
+    draw();
+
+    const now = performance.now();
+    if (now - lastAmbient > 650) {
+      lastAmbient = now;
+      let freq = 260;
+      if (mode === "pi") freq = 220 + Math.min(1, pi.estimate / 4) * 180;
+      else if (mode === "fibonacci") freq = 200 + (num("count") % 12) * 28;
+      else if (mode === "golden") freq = 210 + num("depth") * 12;
+      else if (mode === "lissajous") freq = 240 + ((num("a") + num("b")) % 10) * 26;
+      else if (mode === "fourier") freq = 200 + num("harmonics") * 9;
+      else if (isFractal()) freq = 160 + Math.log2(view.zoom + 1) * 30;
+      audio.ambient(freq, 0.03, 0.35);
+    }
+  }
+
+  function frame(ts: number) {
+    if (!playing) return;
+    if (!last) last = ts;
+    const dt = Math.min(0.1, (ts - last) / 1000);
+    last = ts;
+    if (isFractal()) {
+      autoAcc += dt;
+      if (autoAcc < 0.12) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      autoAcc = 0;
+    }
+    step(dt);
+    raf = requestAnimationFrame(frame);
+  }
+
+  function play() {
+    if (playing) return;
+    playing = true;
+    last = 0;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+    audio.tone(300, { gain: 0.04, dur: 0.18, type: "triangle", slide: 1.25 });
+    draw();
+  }
+
+  function stop() {
+    playing = false;
+    cancelAnimationFrame(raf);
+    raf = 0;
+    draw();
+  }
+
+  let drawRaf = 0;
+  function scheduleDraw() {
+    if (drawRaf) return;
+    drawRaf = requestAnimationFrame(() => {
+      drawRaf = 0;
+      draw();
+    });
+  }
+
+  function applyMode(autoplay: boolean) {
+    stop();
+    time = 0;
+    buffer = [];
+    pi.reset();
+    defaults();
+    buildParams();
+    resetView();
+    renderBrief();
+    resize();
+    if (autoplay && MODES[mode].animated && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) play();
+  }
+
+  function mutate() {
+    if (mode === "golden") {
+      values.depth = 6 + Math.floor(Math.random() * 9);
+    } else if (mode === "fibonacci") {
+      values.count = 6 + Math.floor(Math.random() * 9);
+    } else if (mode === "pi") {
+      pi.reset();
+      time = 0;
+    } else if (mode === "mandelbrot") {
+      view.cx = -1.75 + Math.random() * 1.4;
+      view.cy = -0.4 + Math.random() * 0.8;
+      view.zoom = 1.5 + Math.random() * 8;
+    } else if (mode === "julia") {
+      const angle = Math.random() * Math.PI * 2;
+      values.re = Number((0.7885 * Math.cos(angle)).toFixed(3));
+      values.im = Number((0.7885 * Math.sin(angle)).toFixed(3));
+      resetView();
+      buildParams();
+    } else if (mode === "lissajous") {
+      values.a = 1 + Math.floor(Math.random() * 9);
+      values.b = 1 + Math.floor(Math.random() * 9);
+      values.phase = Math.floor(Math.random() * 628);
+    } else {
+      values.harmonics = 3 + Math.floor(Math.random() * 20);
+      values.wave = WAVE_OPTIONS[Math.floor(Math.random() * WAVE_OPTIONS.length)].value;
+      buffer = [];
+      buildParams();
+    }
+    draw();
+  }
+
+  function reset() {
+    stop();
+    time = 0;
+    buffer = [];
+    pi.reset();
+    defaults();
+    buildParams();
+    resetView();
+    draw();
+  }
+
+  // --- fractal pan / zoom --------------------------------------------------
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (!isFractal() || event.button !== 0) return;
+    dragging = true;
+    lastPointer = { x: event.clientX, y: event.clientY };
+    canvas.setPointerCapture(event.pointerId);
+  });
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (!dragging || !isFractal()) return;
+    const dx = event.clientX - lastPointer.x;
+    const dy = event.clientY - lastPointer.y;
+    lastPointer = { x: event.clientX, y: event.clientY };
+    const span = 3.2 / view.zoom;
+    view.cx -= (dx / cssW) * span;
+    view.cy -= (dy / cssH) * span * (cssH / cssW);
+    scheduleDraw();
+  });
+
+  const endDrag = () => {
+    dragging = false;
+  };
+  canvas.addEventListener("pointerup", endDrag);
+  canvas.addEventListener("pointercancel", endDrag);
+
+  canvas.addEventListener(
+    "wheel",
+    (event) => {
+      if (!isFractal()) return;
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mx = (event.clientX - rect.left) / rect.width - 0.5;
+      const my = (event.clientY - rect.top) / rect.height - 0.5;
+      const span = 3.2 / view.zoom;
+      const aspect = cssH / cssW;
+      const wx = view.cx + mx * span;
+      const wy = view.cy + my * span * aspect;
+      const factor = Math.exp(-event.deltaY * 0.0015);
+      view.zoom = Math.max(0.5, Math.min(2e5, view.zoom * factor));
+      const next = 3.2 / view.zoom;
+      view.cx = wx - mx * next;
+      view.cy = wy - my * next * aspect;
+      scheduleDraw();
+    },
+    { passive: false },
+  );
+
+  // --- wiring --------------------------------------------------------------
+
+  modeSelect.value = mode;
+  applyMode(true);
+
+  modeSelect.addEventListener("change", () => {
+    mode = modeSelect.value as WonderId;
+    const url = new URL(location.href);
+    url.searchParams.set("exp", mode);
+    history.replaceState(null, "", url);
+    applyMode(true);
+  });
+
+  playBtn.addEventListener("click", () => (playing ? stop() : play()));
+  mutateBtn.addEventListener("click", mutate);
+  resetBtn.addEventListener("click", reset);
+
+  window.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("input, textarea, select, button, [contenteditable='true']")) return;
+    if (e.code === "Space") {
+      e.preventDefault();
+      playing ? stop() : play();
+    } else if (e.key.toLowerCase() === "m") {
+      mutate();
+    } else if (e.key.toLowerCase() === "r") {
+      reset();
+    }
+  });
+
+  let resizeRaf = 0;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(resize);
+  });
+
+  const io = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) {
+      if (playing) stop();
+    }
+  });
+  io.observe(consoleEl);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && playing) stop();
+  });
+</script>

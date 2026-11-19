@@ -1,0 +1,126 @@
+---
+import Base from "../../layouts/Base.astro";
+import ExperimentCard from "../../components/ExperimentCard.astro";
+import { categories, experiments } from "../../data/experiments";
+
+const count = (name: string) => experiments.filter((e) => e.category === name).length;
+const total = experiments.length;
+---
+
+<Base title="SORT//VOID — Experiment Index" description="Browse algorithm experiments in sorting, pathfinding, cellular automata, mathematics and ASCII 3D.">
+  <div class="page-head">
+    <div>
+      <div class="crumb">SORT//VOID / INDEX</div>
+      <h1>EXPERIMENT <em>INDEX</em></h1>
+      <p>Every entry is a live program, not a screenshot. Sorting and ASCII fields run on text surfaces; searches, cellular automata and mathematical wonders render to canvas. Choose a field and watch the machine do the work.</p>
+    </div>
+    <div class="head-index">TOTAL_<b>{String(total).padStart(2, "0")}</b><br />CATEGORIES_0{categories.length}<br />ENGINE / CANVAS + ASCII</div>
+  </div>
+
+  <nav class="cat-nav" aria-label="Experiment categories">
+    {categories.map((cat, i) => (
+      <a href={`#${cat.id}`}>
+        <span class="n">{String(i + 1).padStart(2, "0")}</span>
+        <span>{cat.name}</span>
+        <span class="c">{String(count(cat.name)).padStart(2, "0")}</span>
+      </a>
+    ))}
+  </nav>
+
+  {categories.map((cat, i) => (
+    <section class="cat-section" id={cat.id} aria-labelledby={`cat-${cat.id}`}>
+      <div class="cat-head">
+        <div class="cat-title">
+          <span class="cat-index">{String(i + 1).padStart(2, "0")}</span>
+          <div>
+            <h2 id={`cat-${cat.id}`}>{cat.name}</h2>
+            <p>{cat.blurb}</p>
+          </div>
+        </div>
+        <span class="tag">{String(count(cat.name)).padStart(2, "0")} RUNS</span>
+      </div>
+      <div class="card-grid">
+        {experiments
+          .filter((exp) => exp.category === cat.name)
+          .map((exp, j) => <ExperimentCard exp={exp} index={j + 1} />)}
+      </div>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .cat-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    border: 1px solid var(--line);
+    border-right: 0;
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+    background: #070b09;
+  }
+
+  .cat-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    border-right: 1px solid var(--line);
+    font-size: 9px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: background 120ms linear, color 120ms linear;
+  }
+
+  .cat-nav a:hover { background: var(--panel-hi); color: var(--green); }
+  .cat-nav .n { color: var(--dim); }
+  .cat-nav .c { margin-left: auto; color: var(--line-hot); font-variant-numeric: tabular-nums; }
+
+  .cat-section { margin-bottom: clamp(2.5rem, 5vw, 4rem); scroll-margin-top: 80px; }
+
+  .cat-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 1rem;
+  }
+
+  .cat-title { display: flex; gap: 0.9rem; align-items: baseline; }
+
+  .cat-index {
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    padding-top: 0.3rem;
+  }
+
+  .cat-head h2 {
+    font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+    letter-spacing: 0.01em;
+  }
+
+  .cat-head p {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 0.25rem;
+    max-width: 62ch;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  @media (max-width: 1000px) {
+    .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 640px) {
+    .card-grid { grid-template-columns: 1fr; }
+    .cat-nav { grid-template-columns: 1fr 1fr; }
+    .cat-nav a:nth-child(2n) { border-right: 0; }
+  }
+</style>

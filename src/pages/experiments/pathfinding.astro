@@ -1,0 +1,718 @@
+---
+import Base from "../../layouts/Base.astro";
+import { SEARCH_ALGORITHMS } from "../../engines/pathfinding/search";
+---
+
+<Base title="SORT//VOID — Pathfinding Grid" description="Watch A*, Dijkstra, BFS and DFS carve through a graphical maze in real time.">
+  <div class="page-head">
+    <div>
+      <div class="crumb"><a href="/experiments/">EXPERIMENTS</a> / PATHFINDING</div>
+      <h1>PATHFINDING <em>GRID</em></h1>
+      <p>A freshly carved maze, four search strategies and a live canvas. The visit order is real; the final path is reconstructed from parent pointers. Drag across the grid to draw your own walls.</p>
+    </div>
+    <div class="head-index">EXP_02<br /><b>PATHFINDING</b><br />4 ALGORITHMS</div>
+  </div>
+
+  <section class="console panel" id="console" aria-label="Interactive pathfinding visualiser">
+    <div class="panel-head">
+      <span class="title">SEARCH ENGINE / CANVAS</span>
+      <span id="engine-state">READY</span>
+    </div>
+
+    <div class="controls">
+      <label class="field">ALGORITHM
+        <select id="algo-select">
+          {SEARCH_ALGORITHMS.map((algo) => <option value={algo.id}>{algo.name}</option>)}
+        </select>
+      </label>
+      <label class="field">GRID
+        <select id="grid-select">
+          <option value="31x15">31 × 15</option>
+          <option value="45x21" selected>45 × 21</option>
+          <option value="55x25">55 × 25</option>
+        </select>
+      </label>
+      <label class="field">SPEED · CELLS/SEC
+        <input id="speed-range" type="range" min="4" max="240" step="4" value="80" />
+        <output id="speed-out" for="speed-range">80</output>
+      </label>
+    </div>
+
+    <div class="console-grid">
+      <div class="viz-col">
+        <div class="viz-head">
+          <span>MAZE FIELD <b id="grid-meta">45 × 21</b></span>
+          <span id="op-readout">READY</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="maze-canvas" class="viz-canvas viz-canvas--interactive" role="img" aria-label="Graphical maze with a live search front"></canvas>
+          <span class="canvas-hint">DRAG TO DRAW WALLS</span>
+        </div>
+        <div class="legend">
+          <span><i class="sw sw-wall"></i> WALL</span>
+          <span><i class="sw sw-open"></i> OPEN</span>
+          <span><i class="sw sw-start"></i> START</span>
+          <span><i class="sw sw-end"></i> EXIT</span>
+          <span><i class="sw sw-visited"></i> VISITED</span>
+          <span><i class="sw sw-current"></i> CURRENT</span>
+          <span><i class="sw sw-path"></i> PATH</span>
+        </div>
+        <div class="viz-foot">
+          <span>MAZE GEN / RECURSIVE BACKTRACKER</span>
+          <span>CANVAS 2D · REAL TRACE</span>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="panel-head"><span class="title">TELEMETRY</span><span>LIVE</span></div>
+        <dl class="telemetry">
+          <div class="metric metric--wide">
+            <dt>ALGORITHM</dt>
+            <dd id="stat-algo" class="accent">A* Search</dd>
+          </div>
+          <div class="metric">
+            <dt>STATUS</dt>
+            <dd id="stat-status">IDLE</dd>
+          </div>
+          <div class="metric">
+            <dt>VISITED</dt>
+            <dd id="stat-visited">0</dd>
+          </div>
+          <div class="metric">
+            <dt>PATH</dt>
+            <dd id="stat-path">—</dd>
+          </div>
+          <div class="metric">
+            <dt>SOLVE TIME</dt>
+            <dd id="stat-time">—</dd>
+          </div>
+          <div class="metric metric--wide">
+            <dt>FRONTIER</dt>
+            <dd id="stat-frontier">priority queue</dd>
+          </div>
+          <div class="metric metric--wide">
+            <dt>TRACE PROGRESS</dt>
+            <dd><span id="progress" class="progress">[░░░░░░░░░░░░░░░░░░] 0%</span></dd>
+          </div>
+        </dl>
+
+        <div class="transport">
+          <button class="btn btn--primary" id="btn-play" type="button">▶ SEARCH</button>
+          <button class="btn" id="btn-step" type="button">▸ STEP</button>
+          <button class="btn btn--ghost" id="btn-restart" type="button">↺ RESTART</button>
+          <button class="btn btn--ghost" id="btn-maze" type="button">⤨ NEW MAZE</button>
+        </div>
+
+        <div class="hint-row">
+          <span><span class="kbd">SPACE</span> RUN/PAUSE</span>
+          <span><span class="kbd">→</span> STEP</span>
+          <span><span class="kbd">R</span> RESTART</span>
+          <span><span class="kbd">N</span> NEW MAZE</span>
+        </div>
+
+        <div class="side-note">
+          <span class="overline">NOTE</span>
+          <p id="algo-note"></p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="brief">
+    <div class="brief-main">
+      <div class="eyebrow">SEARCH BRIEF</div>
+      <h2 id="brief-name">A* Search</h2>
+      <p id="brief-desc"></p>
+    </div>
+    <dl class="complexity" id="complexity"></dl>
+  </section>
+</Base>
+
+<style>
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.8rem;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--line);
+    background: #070b09;
+  }
+
+  .console-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.75fr);
+  }
+
+  .viz-col { min-width: 0; }
+
+  .viz-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .viz-head b { color: var(--green); font-weight: 400; }
+
+  #op-readout {
+    color: var(--cyan);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #maze-canvas { height: 410px; }
+  @media (max-width: 1100px) { #maze-canvas { height: 360px; } }
+  @media (max-width: 620px) { #maze-canvas { height: 300px; } }
+
+  .sw {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--line-hot);
+    vertical-align: 0;
+  }
+
+  .sw-wall { background: #16231b; }
+  .sw-open { background: #060a08; }
+  .sw-visited { background: #21543a; }
+  .sw-current { background: var(--cyan); }
+  .sw-path { background: var(--green); }
+  .sw-start { background: #4dff91; }
+  .sw-end { background: transparent; border-color: var(--green); border-radius: 50%; }
+
+  .viz-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0.85rem;
+    border-top: 1px solid var(--line);
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .side-col {
+    border-left: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .side-col > * { flex-shrink: 0; }
+
+  .transport {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .hint-row { padding: 0.75rem 0.8rem; border-bottom: 1px solid var(--line); }
+
+  .side-note {
+    padding: 0.9rem;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-top: auto;
+  }
+
+  .side-note p { margin-top: 0.35rem; }
+
+  .progress { color: var(--green); font-size: 11px; white-space: nowrap; }
+
+  .brief {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
+    gap: 2rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .brief h2 { font-size: clamp(1.4rem, 3vw, 2.2rem); letter-spacing: -0.03em; margin: 0.5rem 0 0.6rem; }
+  .brief-main p { color: var(--muted); max-width: 68ch; font-size: 12px; line-height: 1.7; }
+
+  .complexity {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    align-self: start;
+  }
+
+  .complexity div { padding: 0.55rem 0.7rem; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .complexity dt { font-size: 8px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .complexity dd { margin: 2px 0 0; font-size: 13px; color: var(--green); }
+
+  @media (max-width: 900px) {
+    .console-grid { grid-template-columns: 1fr; }
+    .side-col { border-left: 0; border-top: 1px solid var(--line); }
+    .brief { grid-template-columns: 1fr; gap: 1.25rem; }
+  }
+</style>
+
+<script>
+  import { generateMaze, getSearchAlgorithm, solveSearch } from "../../engines/pathfinding/search";
+  import type { Maze, SearchResult } from "../../engines/pathfinding/search";
+  import { audio } from "../../engines/audio/audio";
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  const consoleEl = $("console");
+  const algoSelect = $<HTMLSelectElement>("algo-select");
+  const gridSelect = $<HTMLSelectElement>("grid-select");
+  const speedRange = $<HTMLInputElement>("speed-range");
+  const speedOut = $("speed-out");
+  const canvas = $<HTMLCanvasElement>("maze-canvas");
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  const stateEl = $("engine-state");
+  const opEl = $("op-readout");
+  const gridMeta = $("grid-meta");
+  const statAlgo = $("stat-algo");
+  const statStatus = $("stat-status");
+  const statVisited = $("stat-visited");
+  const statPath = $("stat-path");
+  const statTime = $("stat-time");
+  const statFrontier = $("stat-frontier");
+  const progressEl = $("progress");
+  const algoNote = $("algo-note");
+  const briefName = $("brief-name");
+  const briefDesc = $("brief-desc");
+  const complexityEl = $("complexity");
+  const playBtn = $<HTMLButtonElement>("btn-play");
+  const stepBtn = $<HTMLButtonElement>("btn-step");
+  const restartBtn = $<HTMLButtonElement>("btn-restart");
+  const mazeBtn = $<HTMLButtonElement>("btn-maze");
+
+  const TOTAL_PROGRESS = 18;
+  const BG = "#060a08";
+
+  let algo = getSearchAlgorithm(new URLSearchParams(location.search).get("algo"));
+  let maze: Maze = generateMaze(45, 21);
+  let result: SearchResult = solveSearch(maze, algo.id);
+  let solveMs = 0;
+  let reveal = 0;
+  let pathReveal = 0;
+  let playing = false;
+  let speed = Number(speedRange.value);
+  let raf = 0;
+  let last = 0;
+  let acc = 0;
+  let wasPlaying = false;
+  let editing = false;
+  let paintWall = true;
+  let foundSound = false;
+
+  let cell = 20;
+  let ox = 0;
+  let oy = 0;
+  let cssW = 0;
+  let cssH = 0;
+
+  function renderBrief() {
+    briefName.textContent = algo.name;
+    briefDesc.textContent = algo.description;
+    algoNote.textContent = `${algo.name} uses a ${algo.frontier}. ${algo.complexity.optimal ? "Guaranteed shortest path." : "No shortest-path guarantee — only a found path."}`;
+    statAlgo.textContent = algo.name;
+    statFrontier.textContent = algo.frontier;
+    const c = algo.complexity;
+    const cells: [string, string][] = [
+      ["TIME", c.time],
+      ["SPACE", c.space],
+      ["OPTIMAL", c.optimal ? "YES" : "NO"],
+      ["INPUT", "UNWEIGHTED GRID"],
+      ["MAZE", "RECURSIVE DFS"],
+      ["WEIGHT", "UNIFORM (1)"],
+    ];
+    complexityEl.innerHTML = cells.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+
+  function resize() {
+    cssW = canvas.parentElement ? canvas.parentElement.clientWidth : 600;
+    cssH = Number.parseFloat(getComputedStyle(canvas).height) || 360;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cell = Math.max(3, Math.min(cssW / maze.cols, cssH / maze.rows));
+    ox = (cssW - cell * maze.cols) / 2;
+    oy = (cssH - cell * maze.rows) / 2;
+    draw();
+  }
+
+  function draw() {
+    if (!cssW) return;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    const { cols, rows, walls, start, end } = maze;
+    const visitedNow = Math.min(reveal, result.order.length);
+    const pathNow = Math.min(pathReveal, result.path.length);
+    const gap = Math.max(0, Math.min(2, cell * 0.12));
+
+    for (let i = 0; i < cols * rows; i++) {
+      const x = ox + (i % cols) * cell + gap / 2;
+      const y = oy + ((i / cols) | 0) * cell + gap / 2;
+      const size = cell - gap;
+      if (walls[i]) {
+        ctx.fillStyle = "#101d16";
+        ctx.fillRect(x, y, size, size);
+        ctx.strokeStyle = "#1b2f23";
+        ctx.lineWidth = Math.max(0.5, cell * 0.03);
+        ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+      } else {
+        ctx.fillStyle = "#070d09";
+        ctx.fillRect(x, y, size, size);
+      }
+    }
+
+    // visited cells fade in as they are revealed
+    for (let i = 0; i < visitedNow; i++) {
+      const node = result.order[i];
+      if (node === start || node === end) continue;
+      const t = visitedNow > 1 ? i / (visitedNow - 1) : 1;
+      ctx.fillStyle = `rgba(77, 255, 145, ${0.07 + 0.2 * t})`;
+      ctx.fillRect(
+        ox + (node % cols) * cell + gap / 2,
+        oy + ((node / cols) | 0) * cell + gap / 2,
+        cell - gap,
+        cell - gap,
+      );
+    }
+
+    // current frontier head
+    const currentNode = visitedNow > 0 && reveal < result.order.length ? result.order[visitedNow - 1] : -1;
+    if (pathReveal === 0 && currentNode >= 0) {
+      const x = ox + (currentNode % cols) * cell;
+      const y = oy + ((currentNode / cols) | 0) * cell;
+      ctx.save();
+      ctx.shadowColor = "#67e8f9";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "rgba(103, 232, 249, 0.85)";
+      ctx.fillRect(x + gap / 2, y + gap / 2, cell - gap, cell - gap);
+      ctx.restore();
+    }
+
+    // reconstructed path
+    if (pathNow > 0) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(163, 255, 120, 0.92)";
+      ctx.lineWidth = Math.max(1.2, cell * 0.2);
+      ctx.lineJoin = "round";
+      ctx.shadowColor = "#4dff91";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      for (let i = 0; i < pathNow; i++) {
+        const node = result.path[i];
+        const x = ox + (node % cols) * cell + cell / 2;
+        const y = oy + ((node / cols) | 0) * cell + cell / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      for (let i = 0; i < pathNow; i++) {
+        const node = result.path[i];
+        if (node === start || node === end) continue;
+        ctx.fillStyle = "rgba(163, 255, 120, 0.5)";
+        ctx.fillRect(
+          ox + (node % cols) * cell + gap / 2,
+          oy + ((node / cols) | 0) * cell + gap / 2,
+          cell - gap,
+          cell - gap,
+        );
+      }
+    }
+
+    // start + end markers
+    marker(start, "START", "rgba(163, 255, 120, 0.95)", "#060a08");
+    marker(end, "EXIT", "rgba(6, 10, 8, 0.9)", "#67e8f9");
+
+    function marker(node: number, label: string, fill: string, ink: string) {
+      const x = ox + (node % cols) * cell;
+      const y = oy + ((node / cols) | 0) * cell;
+      ctx.save();
+      ctx.shadowColor = label === "START" ? "#4dff91" : "#67e8f9";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = fill;
+      ctx.fillRect(x + gap, y + gap, cell - gap * 2, cell - gap * 2);
+      ctx.restore();
+      if (cell >= 13) {
+        ctx.fillStyle = ink;
+        ctx.font = `700 ${Math.max(7, Math.floor(cell * 0.55))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label[0], x + cell / 2, y + cell / 2 + 0.5);
+      }
+    }
+
+    updateStats(visitedNow, pathNow);
+  }
+
+  function updateStats(visitedNow: number, pathNow: number) {
+    statVisited.textContent = String(visitedNow);
+    statPath.textContent = pathNow > 0 ? `${pathNow}/${result.path.length}` : "—";
+    statTime.textContent = solveMs > 0 ? `${solveMs.toFixed(2)} ms` : "—";
+    const done = visitedNow >= result.order.length && pathNow >= result.path.length;
+    if (done) statStatus.textContent = result.found ? "FOUND" : "NO ROUTE";
+    else if (pathNow > 0) statStatus.textContent = "RECONSTRUCT";
+    else if (reveal > 0) statStatus.textContent = playing ? "SEARCHING" : "PAUSED";
+    else statStatus.textContent = "IDLE";
+
+    opEl.textContent =
+      pathNow > 0
+        ? `TRACING PATH · ${pathNow}/${result.path.length} STEPS`
+        : visitedNow > 0
+          ? `EXPANDING · CELL ${visitedNow}/${result.order.length}`
+          : editing
+            ? "EDITING WALLS"
+            : "READY";
+
+    const totalEvents = result.order.length + result.path.length;
+    const pct = Math.round(((visitedNow + pathNow) / Math.max(1, totalEvents)) * 100);
+    const filled = Math.round((pct / 100) * TOTAL_PROGRESS);
+    progressEl.textContent = `[${"█".repeat(filled)}${"░".repeat(TOTAL_PROGRESS - filled)}] ${pct}%`;
+
+    gridMeta.textContent = `${maze.cols} × ${maze.rows}`;
+    stateEl.textContent = done ? "COMPLETE" : playing ? `RUNNING · ${speed} C/S` : "PAUSED";
+    playBtn.textContent = playing ? "❚❚ PAUSE" : done ? "▶ REPLAY" : "▶ SEARCH";
+    stepBtn.disabled = done;
+  }
+
+  function solve() {
+    const t0 = performance.now();
+    result = solveSearch(maze, algo.id);
+    solveMs = performance.now() - t0;
+    reveal = 0;
+    pathReveal = 0;
+    foundSound = false;
+    stop();
+    draw();
+  }
+
+  function play() {
+    if (reveal >= result.order.length && pathReveal >= result.path.length) {
+      reveal = 0;
+      pathReveal = 0;
+      foundSound = false;
+    }
+    playing = true;
+    last = 0;
+    acc = 0;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+    audio.tone(330, { gain: 0.05, dur: 0.14, type: "triangle", slide: 1.2 });
+    draw();
+  }
+
+  function stop() {
+    playing = false;
+    cancelAnimationFrame(raf);
+    raf = 0;
+    draw();
+  }
+
+  function advance() {
+    if (reveal < result.order.length) {
+      reveal++;
+      const node = result.order[reveal - 1];
+      audio.pulse(420 + (node % 12) * 24, 0.022);
+      if (node === maze.end && !foundSound) {
+        foundSound = true;
+        audio.arp([0, 7, 12], 330, 0.07, 0.04);
+      }
+      return true;
+    }
+    if (pathReveal < result.path.length) {
+      pathReveal++;
+      if (pathReveal === result.path.length) audio.arp([0, 4, 7, 12], 392, 0.07, 0.045);
+      return true;
+    }
+    return false;
+  }
+
+  function frame(ts: number) {
+    if (!playing) return;
+    if (!last) last = ts;
+    acc += ts - last;
+    last = ts;
+    const interval = 1000 / speed;
+    let moves = 0;
+    while (acc >= interval && moves < 240) {
+      acc -= interval;
+      if (!advance()) {
+        playing = false;
+        break;
+      }
+      moves++;
+    }
+    if (moves) draw();
+    if (playing) {
+      raf = requestAnimationFrame(frame);
+    } else {
+      draw();
+    }
+  }
+
+  function stepForward() {
+    if (playing) stop();
+    const done = reveal >= result.order.length && pathReveal >= result.path.length;
+    if (done) return;
+    advance();
+    draw();
+  }
+
+  function restart() {
+    stop();
+    reveal = 0;
+    pathReveal = 0;
+    foundSound = false;
+    draw();
+  }
+
+  function newMaze() {
+    const [cols, rows] = gridSelect.value.split("x").map(Number);
+    maze = generateMaze(cols, rows);
+    solve();
+    resize();
+  }
+
+  // --- wall painting -------------------------------------------------------
+
+  function nodeAt(event: PointerEvent) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((event.clientX - rect.left - ox) / cell);
+    const y = Math.floor((event.clientY - rect.top - oy) / cell);
+    if (x < 0 || y < 0 || x >= maze.cols || y >= maze.rows) return -1;
+    return y * maze.cols + x;
+  }
+
+  function paint(event: PointerEvent) {
+    const node = nodeAt(event);
+    if (node < 0 || node === maze.start || node === maze.end) return;
+    const value = paintWall ? 1 : 0;
+    if (maze.walls[node] === value) return;
+    maze.walls[node] = value;
+    draw();
+  }
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    const node = nodeAt(event);
+    if (node < 0 || node === maze.start || node === maze.end) return;
+    if (playing) stop();
+    editing = true;
+    reveal = 0;
+    pathReveal = 0;
+    paintWall = maze.walls[node] === 0;
+    canvas.setPointerCapture(event.pointerId);
+    paint(event);
+  });
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (!editing) return;
+    paint(event);
+  });
+
+  function finishPaint() {
+    if (!editing) return;
+    editing = false;
+    const t0 = performance.now();
+    result = solveSearch(maze, algo.id);
+    solveMs = performance.now() - t0;
+    reveal = 0;
+    pathReveal = 0;
+    foundSound = false;
+    draw();
+  }
+
+  canvas.addEventListener("pointerup", finishPaint);
+  canvas.addEventListener("pointercancel", finishPaint);
+
+  // --- wiring --------------------------------------------------------------
+
+  algoSelect.value = algo.id;
+  renderBrief();
+  solve();
+  resize();
+
+  algoSelect.addEventListener("change", () => {
+    algo = getSearchAlgorithm(algoSelect.value);
+    const url = new URL(location.href);
+    url.searchParams.set("algo", algo.id);
+    history.replaceState(null, "", url);
+    renderBrief();
+    solve();
+  });
+
+  gridSelect.addEventListener("change", newMaze);
+  mazeBtn.addEventListener("click", newMaze);
+  restartBtn.addEventListener("click", restart);
+  stepBtn.addEventListener("click", stepForward);
+  playBtn.addEventListener("click", () => (playing ? stop() : play()));
+
+  speedRange.addEventListener("input", () => {
+    speed = Number(speedRange.value);
+    speedOut.textContent = String(speed);
+    if (playing) stateEl.textContent = `RUNNING · ${speed} C/S`;
+  });
+
+  let resizeRaf = 0;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      cssW = 0;
+      resize();
+    });
+  });
+
+  window.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("input, textarea, select, button, [contenteditable='true']")) return;
+    if (e.code === "Space") {
+      e.preventDefault();
+      playing ? stop() : play();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      stepForward();
+    } else if (e.key.toLowerCase() === "r") {
+      restart();
+    } else if (e.key.toLowerCase() === "n") {
+      newMaze();
+    }
+  });
+
+  const io = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) {
+      if (playing) {
+        wasPlaying = true;
+        stop();
+      }
+    } else if (wasPlaying) {
+      wasPlaying = false;
+      play();
+    }
+  });
+  io.observe(consoleEl);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && playing) {
+      wasPlaying = true;
+      stop();
+    } else if (!document.hidden && wasPlaying) {
+      wasPlaying = false;
+      play();
+    }
+  });
+</script>

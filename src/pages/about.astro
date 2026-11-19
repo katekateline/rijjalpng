@@ -1,0 +1,183 @@
+---
+import Base from "../layouts/Base.astro";
+import { voidArt } from "../engines/ascii/art";
+
+const frame = voidArt(21, 56, 14);
+---
+
+<Base title="SORT//VOID — About" description="Project notes for SORT//VOID, an ASCII algorithm visualisation playground.">
+  <div class="page-head">
+    <div>
+      <div class="crumb">SORT//VOID / ABOUT</div>
+      <h1>PROJECT <em>NOTES</em></h1>
+      <p>An experimental playground where algorithms become living digital art. Built with Astro, TypeScript and a stubborn refusal to draw a chart.</p>
+    </div>
+    <div class="head-index">FILE_00<br /><b>ABOUT</b><br />READ TIME ~3 MIN</div>
+  </div>
+
+  <div class="about-grid">
+    <section class="about-copy">
+      <div class="eyebrow">001 / PREMISE</div>
+      <h2>CHARACTERS ARE THE MEDIUM.</h2>
+      <p>SORT//VOID is not an algorithm course with a terminal skin. It is an instrument for watching computation happen. The grid is the canvas, the character is the pixel, and the algorithm is the hand that moves it.</p>
+      <p>Every visualisation is generated from an actual execution trace. Comparisons are counted when they happen. Swaps are recorded when values move. Nothing in the telemetry is decorative.</p>
+
+      <div class="eyebrow section-gap">002 / ARCHITECTURE</div>
+      <h2>SMALL ENGINE, SHARP EDGES.</h2>
+      <p>Algorithms live in isolated TypeScript modules. Sorting produces an event trace, which a player replays at a fixed step rate. The text renderer writes one string into one preformatted surface; searches and cellular automata draw into a canvas; wonders render pixels directly. No framework in the animation loop.</p>
+      <p>Every surface shares the same principle: compute one frame, replace it, wait for the next. <code>requestAnimationFrame</code> is the only clock. Loops stop when the workspace leaves the viewport or the tab is hidden. Audio is synthesised on demand by one shared AudioContext.</p>
+
+      <div class="eyebrow section-gap">003 / CONSTRAINTS</div>
+      <h2>WHAT IT REFUSES.</h2>
+      <ul class="refuse-list">
+        <li>Stock photography and decorative illustration.</li>
+        <li>Charts wearing an ASCII costume.</li>
+        <li>Fake progress, invented counters, simulated work.</li>
+        <li>Glassmorphism, giant radii, gradient soup.</li>
+        <li>External APIs, tracking, backend services.</li>
+      </ul>
+
+      <div class="eyebrow section-gap">004 / COLOPHON</div>
+      <h2>BUILT FROM.</h2>
+      <div class="colophon">
+        <div><span>FRAMEWORK</span><b>Astro</b></div>
+        <div><span>LANGUAGE</span><b>TypeScript</b></div>
+        <div><span>RENDER</span><b>pre / text + canvas</b></div>
+        <div><span>LOOPS</span><b>requestAnimationFrame</b></div>
+        <div><span>LAYOUT</span><b>CSS Grid</b></div>
+        <div><span>AUDIO</span><b>Web Audio · procedural</b></div>
+        <div><span>IMAGES</span><b>00</b></div>
+        <div><span>DEPENDENCIES</span><b>01</b></div>
+      </div>
+    </section>
+
+    <aside class="about-side">
+      <div class="panel">
+        <div class="panel-head"><span class="title">SYS.LOG / ORIGIN</span><span>SEED 0x15</span></div>
+        <pre class="ascii side-art" aria-hidden="true">{frame}</pre>
+        <div class="side-log">
+          <p><span>→</span> 07 sorting algorithms</p>
+          <p><span>→</span> 04 search algorithms</p>
+          <p><span>→</span> 03 cellular rules</p>
+          <p><span>→</span> 07 mathematical wonders</p>
+          <p><span>→</span> 01 shared audio engine</p>
+          <p><span>→</span> 02 renderers / text + canvas</p>
+        </div>
+      </div>
+      <div class="side-note">
+        <span class="overline">ACCESSIBILITY</span>
+        <p>Motion is paused for <code>prefers-reduced-motion</code>. Keyboard shortcuts ignore form fields. Controls are native buttons and selects. ASCII surfaces carry descriptive labels.</p>
+      </div>
+      <div class="side-note">
+        <span class="overline">PERFORMANCE</span>
+        <p>Frames are capped and batched. Heavy loops stop off-screen. Array size is deliberately bounded so the text grid stays legible.</p>
+      </div>
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .about-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .about-copy h2 {
+    font-size: clamp(1.3rem, 3vw, 2rem);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0.55rem 0 0.9rem;
+  }
+
+  .about-copy p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+    max-width: 70ch;
+    margin-bottom: 0.9rem;
+  }
+
+  .about-copy code {
+    color: var(--green);
+    font-size: 11px;
+  }
+
+  .section-gap { margin-top: 2.2rem; }
+
+  .refuse-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+    max-width: 70ch;
+  }
+
+  .refuse-list li {
+    border-bottom: 1px solid var(--line);
+    padding: 0.55rem 0 0.55rem 1.2rem;
+    position: relative;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .refuse-list li::before {
+    content: "×";
+    position: absolute;
+    left: 0;
+    color: var(--red);
+  }
+
+  .colophon {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    max-width: 70ch;
+  }
+
+  .colophon div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .colophon span { color: var(--muted); }
+  .colophon b { color: var(--green); font-weight: 400; }
+
+  .about-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    position: sticky;
+    top: 80px;
+  }
+
+  .side-art {
+    font-size: 7px;
+    line-height: 1.1;
+    padding: 0.8rem;
+    overflow-x: auto;
+    color: var(--green-2);
+  }
+
+  .side-log { border-top: 1px solid var(--line); padding: 0.7rem 0.85rem; }
+  .side-log p { font-size: 10px; color: var(--muted); display: flex; gap: 0.5rem; padding: 2px 0; }
+  .side-log span { color: var(--green); }
+
+  .side-note { font-size: 10px; color: var(--muted); line-height: 1.65; }
+  .side-note p { margin-top: 0.3rem; }
+  .side-note code { color: var(--green); }
+
+  @media (max-width: 900px) {
+    .about-grid { grid-template-columns: 1fr; }
+    .about-side { position: static; }
+  }
+</style>

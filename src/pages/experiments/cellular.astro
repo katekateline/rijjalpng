@@ -1,0 +1,752 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+
+<Base title="SORT//VOID — Cellular Field" description="Conway's Game of Life, Rule 30 and Rule 90 rendered live on a graphical cellular grid.">
+  <div class="page-head">
+    <div>
+      <div class="crumb"><a href="/experiments/">EXPERIMENTS</a> / CELLULAR</div>
+      <h1>CELLULAR <em>FIELD</em></h1>
+      <p>Local rules, global weather. A grid of cells updates in lockstep; patterns emerge that nobody wrote down. Click and drag to paint living cells.</p>
+    </div>
+    <div class="head-index">EXP_03<br /><b>CELLULAR</b><br />3 RULES</div>
+  </div>
+
+  <section class="console panel" id="console" aria-label="Cellular automata visualiser">
+    <div class="panel-head">
+      <span class="title">CELL ENGINE / CANVAS</span>
+      <span id="engine-state">READY</span>
+    </div>
+
+    <div class="controls">
+      <label class="field">MODE
+        <select id="mode-select">
+          <option value="life">GAME OF LIFE</option>
+          <option value="rule30">RULE 30</option>
+          <option value="rule90">RULE 90</option>
+        </select>
+      </label>
+      <label class="field" id="preset-field">PRESET
+        <select id="preset-select">
+          <option value="glider">GLIDER</option>
+          <option value="gun">GOSPER GLIDER GUN</option>
+          <option value="pulsar">PULSAR</option>
+          <option value="rpent">R-PENTOMINO</option>
+          <option value="noise" selected>RANDOM NOISE</option>
+        </select>
+      </label>
+      <label class="field">PALETTE
+        <select id="palette-select">
+          <option value="phosphor" selected>PHOSPHOR</option>
+          <option value="ice">ICE</option>
+          <option value="amber">AMBER</option>
+        </select>
+      </label>
+      <label class="field">SPEED · GEN/SEC
+        <input id="speed-range" type="range" min="1" max="30" step="1" value="8" />
+        <output id="speed-out" for="speed-range">8</output>
+      </label>
+    </div>
+
+    <div class="console-grid">
+      <div class="viz-col">
+        <div class="viz-head">
+          <span>CELL MATRIX <b id="gen-meta">GEN 0000</b></span>
+          <span id="op-readout">READY</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="cell-canvas" class="viz-canvas viz-canvas--interactive" role="img" aria-label="Graphical cellular automaton grid"></canvas>
+          <span class="canvas-hint" id="canvas-hint">CLICK TO PAINT CELLS</span>
+        </div>
+        <div class="legend">
+          <span><i class="sw" id="sw-alive"></i> ALIVE</span>
+          <span><i class="sw sw-dead"></i> DEAD</span>
+          <span id="edge-legend">TOROIDAL EDGE</span>
+          <span id="grid-readout">72 × 42</span>
+        </div>
+        <div class="viz-foot">
+          <span id="foot-mode">LIFE / B3/S23</span>
+          <span>CANVAS 2D / DOUBLE BUFFER</span>
+        </div>
+      </div>
+
+      <aside class="side-col">
+        <div class="panel-head"><span class="title">TELEMETRY</span><span>LIVE</span></div>
+        <dl class="telemetry">
+          <div class="metric metric--wide">
+            <dt>MODE</dt>
+            <dd id="stat-mode" class="accent">GAME OF LIFE</dd>
+          </div>
+          <div class="metric">
+            <dt>GENERATION</dt>
+            <dd id="stat-gen">0</dd>
+          </div>
+          <div class="metric">
+            <dt>POPULATION</dt>
+            <dd id="stat-pop">0</dd>
+          </div>
+          <div class="metric">
+            <dt>DENSITY</dt>
+            <dd id="stat-density">0%</dd>
+          </div>
+          <div class="metric">
+            <dt>RULE</dt>
+            <dd id="stat-rule">B3/S23</dd>
+          </div>
+          <div class="metric metric--wide">
+            <dt>RULE TABLE</dt>
+            <dd id="stat-table">NEIGHBOUR SUM → NEXT</dd>
+          </div>
+        </dl>
+
+        <div class="transport">
+          <button class="btn btn--primary" id="btn-play" type="button">▶ START</button>
+          <button class="btn" id="btn-step" type="button">▸ STEP</button>
+          <button class="btn btn--ghost" id="btn-random" type="button">⤨ RANDOMIZE</button>
+          <button class="btn btn--ghost" id="btn-reset" type="button">↺ RESET</button>
+        </div>
+
+        <div class="hint-row">
+          <span><span class="kbd">SPACE</span> START/STOP</span>
+          <span><span class="kbd">→</span> STEP</span>
+          <span><span class="kbd">R</span> RESET</span>
+          <span><span class="kbd">N</span> RANDOM</span>
+        </div>
+
+        <div class="side-note">
+          <span class="overline">NOTE</span>
+          <p id="side-note">Each cell counts its eight neighbours, including wrapped edges. Birth on exactly three; survival on two or three.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="brief">
+    <div class="brief-main">
+      <div class="eyebrow">SYSTEM BRIEF</div>
+      <h2 id="brief-name">Conway's Game of Life</h2>
+      <p id="brief-desc"></p>
+    </div>
+    <dl class="complexity" id="complexity"></dl>
+  </section>
+</Base>
+
+<style>
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.8rem;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--line);
+    background: #070b09;
+  }
+
+  .console-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.75fr);
+  }
+
+  .viz-col { min-width: 0; }
+
+  .viz-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .viz-head b { color: var(--green); font-weight: 400; }
+
+  #op-readout {
+    color: var(--cyan);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #cell-canvas { height: 430px; }
+  @media (max-width: 1100px) { #cell-canvas { height: 380px; } }
+  @media (max-width: 620px) { #cell-canvas { height: 300px; } }
+
+  .sw {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--line-hot);
+    background: var(--green);
+  }
+
+  .sw-dead { background: #060a08; }
+
+  .viz-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0.85rem;
+    border-top: 1px solid var(--line);
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .side-col { border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .side-col > * { flex-shrink: 0; }
+
+  .transport {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .hint-row { padding: 0.75rem 0.8rem; border-bottom: 1px solid var(--line); }
+
+  .side-note { padding: 0.9rem; font-size: 10px; color: var(--muted); line-height: 1.65; margin-top: auto; }
+  .side-note p { margin-top: 0.35rem; }
+
+  .brief {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
+    gap: 2rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .brief h2 { font-size: clamp(1.4rem, 3vw, 2.2rem); letter-spacing: -0.03em; margin: 0.5rem 0 0.6rem; }
+  .brief-main p { color: var(--muted); max-width: 68ch; font-size: 12px; line-height: 1.7; }
+
+  .complexity {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    align-self: start;
+  }
+
+  .complexity div { padding: 0.55rem 0.7rem; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .complexity dt { font-size: 8px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+  .complexity dd { margin: 2px 0 0; font-size: 12px; color: var(--green); }
+
+  @media (max-width: 900px) {
+    .console-grid { grid-template-columns: 1fr; }
+    .side-col { border-left: 0; border-top: 1px solid var(--line); }
+    .brief { grid-template-columns: 1fr; gap: 1.25rem; }
+  }
+</style>
+
+<script>
+  import {
+    centerRow,
+    liveCount,
+    makeLife,
+    nextRule,
+    randomRow,
+    RULE_VALUE,
+    stepLife,
+  } from "../../engines/cellular/automata";
+  import type { CellMode } from "../../engines/cellular/automata";
+  import { audio } from "../../engines/audio/audio";
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  const consoleEl = $("console");
+  const modeSelect = $<HTMLSelectElement>("mode-select");
+  const presetField = $("preset-field");
+  const presetSelect = $<HTMLSelectElement>("preset-select");
+  const paletteSelect = $<HTMLSelectElement>("palette-select");
+  const speedRange = $<HTMLInputElement>("speed-range");
+  const speedOut = $("speed-out");
+  const canvas = $<HTMLCanvasElement>("cell-canvas");
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+  const stateEl = $("engine-state");
+  const opEl = $("op-readout");
+  const genMeta = $("gen-meta");
+  const statMode = $("stat-mode");
+  const statGen = $("stat-gen");
+  const statPop = $("stat-pop");
+  const statDensity = $("stat-density");
+  const statRule = $("stat-rule");
+  const statTable = $("stat-table");
+  const sideNote = $("side-note");
+  const footMode = $("foot-mode");
+  const briefName = $("brief-name");
+  const briefDesc = $("brief-desc");
+  const complexityEl = $("complexity");
+  const edgeLegend = $("edge-legend");
+  const gridReadout = $("grid-readout");
+  const swAlive = $("sw-alive");
+  const canvasHint = $("canvas-hint");
+  const playBtn = $<HTMLButtonElement>("btn-play");
+  const stepBtn = $<HTMLButtonElement>("btn-step");
+  const randomBtn = $<HTMLButtonElement>("btn-random");
+  const resetBtn = $<HTMLButtonElement>("btn-reset");
+
+  const LIFE_COLS = 72;
+  const LIFE_ROWS = 42;
+  const RULE_COLS = 116;
+  const RULE_ROWS = 46;
+  const BG = "#060a08";
+
+  const PALETTES = {
+    phosphor: { alive: "#a3ff78", glow: "rgba(77, 255, 145, 0.28)", css: "#a3ff78" },
+    ice: { alive: "#8fe9ff", glow: "rgba(103, 232, 249, 0.28)", css: "#8fe9ff" },
+    amber: { alive: "#ffd479", glow: "rgba(255, 179, 71, 0.28)", css: "#ffd479" },
+  } as const;
+
+  const PRESETS: Record<string, string[]> = {
+    glider: [".O.", "..O", "OOO"],
+    gun: [
+      "........................O",
+      "......................O.O",
+      "............OO......OO............OO",
+      "...........O...O....OO............OO",
+      "OO........O.....O...OO",
+      "OO........O...O.OO....O.O",
+      "..........O.....O.......O",
+      "...........O...O",
+      "............OO",
+    ],
+    pulsar: [
+      "..OOO...OOO..",
+      ".............",
+      "O....O.O....O",
+      "O....O.O....O",
+      "O....O.O....O",
+      "..OOO...OOO..",
+      ".............",
+      "..OOO...OOO..",
+      "O....O.O....O",
+      "O....O.O....O",
+      "O....O.O....O",
+      ".............",
+      "..OOO...OOO..",
+    ],
+    rpent: [".OO", "OO.", ".O."],
+  };
+
+  const MODES = {
+    life: {
+      name: "Conway's Game of Life",
+      rule: "B3/S23",
+      table: "8-NEIGHBOUR SUM → NEXT",
+      foot: "LIFE / B3/S23",
+      edge: "TOROIDAL EDGE",
+      note: "Each cell counts its eight neighbours, including wrapped edges. Birth on exactly three; survival on two or three. Drag on the grid to seed your own patterns.",
+      desc: "The canonical two-state automaton. Live cells with two or three live neighbours survive; dead cells with exactly three neighbours are born. Everything else dies. Gliders, oscillators and still lifes appear without being designed.",
+      cells: [
+        ["NEIGHBOURHOOD", "MOORE / 8"],
+        ["BIRTH", "3"],
+        ["SURVIVAL", "2, 3"],
+        ["EDGE", "TOROIDAL"],
+        ["STATES", "2"],
+        ["UPDATE", "SYNCHRONOUS"],
+      ] as [string, string][],
+    },
+    rule30: {
+      name: "Rule 30",
+      rule: "RULE 30",
+      table: "111 110 101 100 011 010 001 000",
+      foot: "ELEMENTARY CA / RULE 30",
+      edge: "ZERO EDGE",
+      note: "A one-dimensional row updates from its left, centre and right neighbours. Rule 30 turns a single seed into a chaotic triangle; it is used as a randomness source in Mathematica.",
+      desc: "Each generation reads vertical triplets from the row above: 111, 110, 101, 100, 011, 010, 001, 000. Rule 30 maps them to 0,0,0,1,1,1,1,0. A single centre cell produces a chaotic, asymmetric cone.",
+      cells: [
+        ["NEIGHBOURHOOD", "LEFT / CENTRE / RIGHT"],
+        ["BIRTH BITS", "00011110"],
+        ["EDGE", "ZERO"],
+        ["ROW WIDTH", String(RULE_COLS)],
+        ["STATES", "2"],
+        ["UPDATE", "SYNCHRONOUS"],
+      ] as [string, string][],
+    },
+    rule90: {
+      name: "Rule 90",
+      rule: "RULE 90",
+      table: "111 110 101 100 011 010 001 000",
+      foot: "ELEMENTARY CA / RULE 90",
+      edge: "ZERO EDGE",
+      note: "Rule 90 is the XOR of the left and right neighbours. From one seed it draws the Sierpinski triangle; the centre cell is ignored entirely.",
+      desc: "Rule 90 maps vertical triplets to 0,1,0,1,1,0,1,0. Because the next cell is the XOR of its two outer neighbours, a single seed unfolds into the Sierpinski triangle — a fractal built from a one-line rule.",
+      cells: [
+        ["NEIGHBOURHOOD", "LEFT / CENTRE / RIGHT"],
+        ["BIRTH BITS", "01011010"],
+        ["EDGE", "ZERO"],
+        ["ROW WIDTH", String(RULE_COLS)],
+        ["STATES", "2"],
+        ["UPDATE", "SYNCHRONOUS"],
+      ] as [string, string][],
+    },
+  };
+
+  const params = new URLSearchParams(location.search);
+  const requested = params.get("mode");
+  let mode: CellMode = requested === "rule30" || requested === "rule90" ? requested : "life";
+  let palette = PALETTES.phosphor;
+  let life = makeLife(LIFE_COLS, LIFE_ROWS);
+  let lifeGen = 0;
+  let ruleHistory: Uint8Array[] = [];
+  let ruleGen = 0;
+  let speed = Number(speedRange.value);
+  let playing = false;
+  let raf = 0;
+  let last = 0;
+  let acc = 0;
+  let wasPlaying = false;
+  let painting = false;
+  let paintValue = 1;
+  let paintedAt = -1;
+
+  let cssW = 0;
+  let cssH = 0;
+  let cell = 8;
+  let ox = 0;
+  let oy = 0;
+
+  const dims = () => (mode === "life" ? [LIFE_COLS, LIFE_ROWS] : [RULE_COLS, RULE_ROWS]);
+
+  function seedRules(random: boolean) {
+    let row = random ? randomRow(RULE_COLS) : centerRow(RULE_COLS);
+    ruleHistory = [];
+    for (let i = 0; i < RULE_ROWS; i++) {
+      ruleHistory.push(row.slice());
+      row = nextRule(row, RULE_VALUE[mode as "rule30" | "rule90"]);
+    }
+    ruleGen = RULE_ROWS - 1;
+  }
+
+  function stamp(pattern: string[]) {
+    life = new Uint8Array(LIFE_COLS * LIFE_ROWS);
+    const w = Math.max(...pattern.map((r) => r.length));
+    const x0 = Math.floor((LIFE_COLS - w) / 2);
+    const y0 = Math.floor((LIFE_ROWS - pattern.length) / 2);
+    pattern.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        if (row[x] === "O") life[(y0 + y) * LIFE_COLS + x0 + x] = 1;
+      }
+    });
+    lifeGen = 0;
+  }
+
+  function applyPreset() {
+    const preset = presetSelect.value;
+    if (preset === "noise") {
+      life = makeLife(LIFE_COLS, LIFE_ROWS);
+      lifeGen = 0;
+    } else {
+      stamp(PRESETS[preset]);
+    }
+  }
+
+  function initMode() {
+    playing = false;
+    cancelAnimationFrame(raf);
+    if (mode === "life") {
+      applyPreset();
+    } else {
+      seedRules(false);
+    }
+    renderBrief();
+    updateLayout();
+    draw();
+  }
+
+  function renderBrief() {
+    const meta = MODES[mode];
+    briefName.textContent = meta.name;
+    briefDesc.textContent = meta.desc;
+    sideNote.textContent = meta.note;
+    footMode.textContent = meta.foot;
+    edgeLegend.textContent = meta.edge;
+    statMode.textContent = meta.name.toUpperCase();
+    statRule.textContent = meta.rule;
+    statTable.textContent = meta.table;
+    complexityEl.innerHTML = meta.cells.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+    presetField.style.display = mode === "life" ? "" : "none";
+    canvasHint.textContent = mode === "life" ? "CLICK TO PAINT CELLS" : "SEEDED ROW / RANDOMIZE";
+  }
+
+  function updateLayout() {
+    cssW = canvas.parentElement ? canvas.parentElement.clientWidth : 600;
+    cssH = Number.parseFloat(getComputedStyle(canvas).height) || 380;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const [cols, rows] = dims();
+    const pad = 8;
+    cell = Math.max(2, Math.min((cssW - pad * 2) / cols, (cssH - pad * 2) / rows));
+    ox = (cssW - cell * cols) / 2;
+    oy = (cssH - cell * rows) / 2;
+    gridReadout.textContent = `${cols} × ${rows}`;
+  }
+
+  function draw() {
+    if (!cssW) return;
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    const alive = palette.alive;
+    const glow = palette.glow;
+    const gap = cell > 4 ? 1 : 0;
+
+    const paintCell = (x: number, y: number) => {
+      const px = ox + x * cell + gap / 2;
+      const py = oy + y * cell + gap / 2;
+      const size = cell - gap;
+      ctx.fillStyle = glow;
+      ctx.fillRect(px - 0.5, py - 0.5, size + 1, size + 1);
+      ctx.fillStyle = alive;
+      ctx.fillRect(px, py, size, size);
+    };
+
+    if (mode === "life") {
+      for (let y = 0; y < LIFE_ROWS; y++) {
+        for (let x = 0; x < LIFE_COLS; x++) {
+          if (life[y * LIFE_COLS + x]) paintCell(x, y);
+        }
+      }
+    } else {
+      for (let y = 0; y < ruleHistory.length; y++) {
+        const row = ruleHistory[y];
+        for (let x = 0; x < RULE_COLS; x++) {
+          if (row[x]) paintCell(x, y);
+        }
+      }
+    }
+
+    const generation = mode === "life" ? lifeGen : ruleGen;
+    const population = currentPopulation();
+    statGen.textContent = String(generation);
+    statPop.textContent = String(population);
+    statDensity.textContent = `${((population / (mode === "life" ? LIFE_COLS * LIFE_ROWS : RULE_COLS * RULE_ROWS)) * 100).toFixed(1)}%`;
+    genMeta.textContent = `GEN ${String(generation).padStart(4, "0")}`;
+    opEl.textContent = playing ? `EVOLVING · ${speed} GEN/S` : generation === 0 ? "READY" : "PAUSED";
+    stateEl.textContent = playing ? `RUNNING · ${speed} GEN/S` : generation === 0 ? "READY" : "PAUSED";
+    playBtn.textContent = playing ? "❚❚ STOP" : "▶ START";
+  }
+
+  function currentPopulation() {
+    if (mode === "life") return liveCount(life);
+    return ruleHistory.reduce((sum, row) => sum + liveCount(row), 0);
+  }
+
+  function stepSim() {
+    if (mode === "life") {
+      stepLife(life, LIFE_COLS, LIFE_ROWS);
+      lifeGen++;
+    } else {
+      const lastRow = ruleHistory[ruleHistory.length - 1];
+      ruleHistory.push(nextRule(lastRow, RULE_VALUE[mode as "rule30" | "rule90"]));
+      if (ruleHistory.length > RULE_ROWS) ruleHistory.shift();
+      ruleGen++;
+    }
+    const density = currentPopulation() / (mode === "life" ? LIFE_COLS * LIFE_ROWS : RULE_COLS * RULE_ROWS);
+    if (mode === "life") audio.pulse(180 + density * 900, 0.025, 0.07);
+    else audio.pulse(240 + (ruleGen % 24) * 14, 0.02, 0.05);
+  }
+
+  function play() {
+    if (playing) return;
+    playing = true;
+    last = 0;
+    acc = 0;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+    audio.tone(260, { gain: 0.045, dur: 0.16, type: "triangle", slide: 1.25 });
+    draw();
+  }
+
+  function stop() {
+    playing = false;
+    cancelAnimationFrame(raf);
+    raf = 0;
+    draw();
+  }
+
+  function frame(ts: number) {
+    if (!playing) return;
+    if (!last) last = ts;
+    acc += ts - last;
+    last = ts;
+    const interval = 1000 / speed;
+    let steps = 0;
+    while (acc >= interval && steps < 12) {
+      acc -= interval;
+      stepSim();
+      steps++;
+    }
+    if (steps) draw();
+    raf = requestAnimationFrame(frame);
+  }
+
+  function stepForward() {
+    if (playing) stop();
+    stepSim();
+    draw();
+  }
+
+  function randomize() {
+    if (mode === "life") {
+      life = makeLife(LIFE_COLS, LIFE_ROWS);
+      lifeGen = 0;
+    } else {
+      seedRules(true);
+    }
+    stop();
+    draw();
+  }
+
+  function reset() {
+    if (mode === "life") {
+      life.fill(0);
+      lifeGen = 0;
+    } else {
+      seedRules(false);
+    }
+    stop();
+    draw();
+  }
+
+  // --- painting ------------------------------------------------------------
+
+  function nodeAt(event: PointerEvent) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((event.clientX - rect.left - ox) / cell);
+    const y = Math.floor((event.clientY - rect.top - oy) / cell);
+    const [cols, rows] = dims();
+    if (x < 0 || y < 0 || x >= cols || y >= rows) return -1;
+    return y * cols + x;
+  }
+
+  function paintAt(event: PointerEvent) {
+    if (mode !== "life") return;
+    const node = nodeAt(event);
+    if (node < 0 || node === paintedAt) return;
+    paintedAt = node;
+    life[node] = paintValue;
+    lifeGen = 0;
+    draw();
+  }
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (mode !== "life" || event.button !== 0) return;
+    const node = nodeAt(event);
+    if (node < 0) return;
+    if (playing) stop();
+    painting = true;
+    paintedAt = -1;
+    paintValue = life[node] ? 0 : 1;
+    canvas.setPointerCapture(event.pointerId);
+    paintAt(event);
+  });
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (!painting) return;
+    paintAt(event);
+  });
+
+  const endPaint = () => {
+    painting = false;
+    paintedAt = -1;
+  };
+  canvas.addEventListener("pointerup", endPaint);
+  canvas.addEventListener("pointercancel", endPaint);
+
+  // --- wiring --------------------------------------------------------------
+
+  modeSelect.value = mode;
+  renderBrief();
+  if (mode !== "life") seedRules(false);
+  updateLayout();
+  draw();
+
+  modeSelect.addEventListener("change", () => {
+    mode = modeSelect.value as CellMode;
+    const url = new URL(location.href);
+    url.searchParams.set("mode", mode);
+    history.replaceState(null, "", url);
+    initMode();
+  });
+
+  presetSelect.addEventListener("change", () => {
+    applyPreset();
+    stop();
+    draw();
+  });
+
+  paletteSelect.addEventListener("change", () => {
+    palette = PALETTES[paletteSelect.value as keyof typeof PALETTES] ?? PALETTES.phosphor;
+    swAlive.style.background = palette.css;
+    swAlive.style.borderColor = palette.css;
+    draw();
+  });
+
+  speedRange.addEventListener("input", () => {
+    speed = Number(speedRange.value);
+    speedOut.textContent = String(speed);
+    if (playing) draw();
+  });
+
+  playBtn.addEventListener("click", () => (playing ? stop() : play()));
+  stepBtn.addEventListener("click", stepForward);
+  randomBtn.addEventListener("click", randomize);
+  resetBtn.addEventListener("click", reset);
+
+  let resizeRaf = 0;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      updateLayout();
+      draw();
+    });
+  });
+
+  window.addEventListener("keydown", (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("input, textarea, select, button, [contenteditable='true']")) return;
+    if (e.code === "Space") {
+      e.preventDefault();
+      playing ? stop() : play();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      stepForward();
+    } else if (e.key.toLowerCase() === "r") {
+      reset();
+    } else if (e.key.toLowerCase() === "n") {
+      randomize();
+    }
+  });
+
+  const io = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) {
+      if (playing) {
+        wasPlaying = true;
+        stop();
+      }
+    } else if (wasPlaying) {
+      wasPlaying = false;
+      play();
+    }
+  });
+  io.observe(consoleEl);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && playing) {
+      wasPlaying = true;
+      stop();
+    } else if (!document.hidden && wasPlaying) {
+      wasPlaying = false;
+      play();
+    }
+  });
+</script>

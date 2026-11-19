@@ -1,242 +1,266 @@
 ---
+import Base from "../layouts/Base.astro";
+import { experiments } from "../data/experiments";
+
+const selected = ["quick", "astar", "life", "golden"]
+  .map((id) => experiments.find((e) => e.id === id))
+  .filter((e): e is NonNullable<typeof e> => Boolean(e));
 ---
 
-<!doctype html>
-<html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#090909" />
-    <title>Untukmu</title>
-    <link rel="icon" type="image/png" href="/rizal.png" />
-  </head>
-  <body>
-    <main aria-label="Foto layar penuh">
-      <img class="portrait" src="/rizal.png" alt="Foto" />
-      <div class="hearts" aria-hidden="true"></div>
-      <section class="intro" aria-label="Masuk ke halaman" id="intro">
-        <button class="enter-button" id="enter-button" type="button">CLICK AKU 💖</button>
-        <div class="love-burst" aria-hidden="true"></div>
-      </section>
-    </main>
-    <audio id="music" src="/oui.mp3" preload="auto" playsinline></audio>
+<Base title="SORT//VOID — Every algorithm leaves a pattern" description="An experimental playground where computation becomes art.">
+  <section class="intro" id="hero">
+    <div class="intro-stage" id="hero-stage">
+      <pre
+        id="hero-art"
+        class="ascii hero-art"
+        role="img"
+        aria-label="A rotating sphere and particle halo drawn entirely with ASCII characters"
+      >LOADING CHARACTER FIELD…</pre>
+      <div class="stage-meta">
+        <span>OBJ_001 / PARTICLE SPHERE</span>
+        <span id="hero-clock">T+000.0</span>
+      </div>
+    </div>
 
-    <script>
-      const audio = document.querySelector<HTMLAudioElement>("#music");
-      const heartLayer = document.querySelector<HTMLDivElement>(".hearts");
-      const intro = document.querySelector<HTMLElement>("#intro");
-      const enterButton = document.querySelector<HTMLButtonElement>("#enter-button");
-      const burstLayer = document.querySelector<HTMLDivElement>(".love-burst");
-      const variants = ["❤️", "💖", "💕", "💗", "💓", "💘"];
+    <div class="intro-copy">
+      <h1>SORT<span class="slash">//</span>VOID</h1>
+      <p class="tagline">EVERY ALGORITHM<br />LEAVES A PATTERN.</p>
+      <p class="lede">Explore the beauty hidden inside computation.</p>
+      <a class="btn btn--primary" href="/experiments/">EXPLORE <span aria-hidden="true">→</span></a>
+      <span class="scroll-cue">SCROLL TO DISCOVER <span aria-hidden="true">↓</span></span>
+    </div>
+  </section>
 
-      const playFromSixSeconds = () => {
-        if (!audio) return;
-
-        audio.currentTime = 6;
-        void audio.play().catch((error: unknown) => {
-          if (!(error instanceof DOMException && error.name === "NotAllowedError")) {
-            console.error("Audio playback failed.", error);
-          }
-        });
-      };
-
-      audio?.addEventListener("ended", () => {
-        audio.currentTime = 6;
-        void audio.play().catch((error: unknown) => console.error("Audio playback failed.", error));
-      });
-
-      enterButton?.addEventListener("click", () => {
-        if (!intro || !burstLayer || !enterButton) return;
-
-        playFromSixSeconds();
-        document.body.classList.add("entered");
-        intro.classList.add("leaving");
-        enterButton.disabled = true;
-
-        for (let index = 0; index < 42; index += 1) {
-          const heart = document.createElement("span");
-          const angle = (Math.PI * 2 * index) / 42 + Math.random() * 0.3;
-          const distance = 100 + Math.random() * Math.max(innerWidth, innerHeight) * 0.55;
-          heart.className = "burst-heart";
-          heart.textContent = variants[Math.floor(Math.random() * variants.length)];
-          heart.style.setProperty("--x", `${Math.cos(angle) * distance}px`);
-          heart.style.setProperty("--y", `${Math.sin(angle) * distance}px`);
-          heart.style.setProperty("--delay", `${Math.random() * 160}ms`);
-          burstLayer.append(heart);
-          heart.addEventListener("animationend", () => heart.remove(), { once: true });
-        }
-
-        window.setTimeout(() => intro.remove(), 1500);
-      });
-
-      const dropHeart = () => {
-        if (!heartLayer) return;
-
-        const heart = document.createElement("span");
-        heart.className = "heart";
-        heart.textContent = variants[Math.floor(Math.random() * variants.length)];
-        heart.style.left = `${Math.random() * 100}vw`;
-        heart.style.fontSize = `${16 + Math.random() * 24}px`;
-        heart.style.animationDuration = `${5 + Math.random() * 5}s`;
-        heart.style.setProperty("--drift", `${(Math.random() - 0.5) * 180}px`);
-        heartLayer.append(heart);
-        heart.addEventListener("animationend", () => heart.remove(), { once: true });
-      };
-
-      window.setInterval(() => {
-        if (document.body.classList.contains("entered")) dropHeart();
-      }, 420);
-    </script>
-  </body>
-</html>
+  <section class="selected" aria-labelledby="selected-title">
+    <div class="selected-head">
+      <h2 id="selected-title">SELECTED <span>/ 04</span></h2>
+      <a href="/experiments/">FULL INDEX <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="selected-grid">
+      {selected.map((exp, i) => (
+        <a class="selected-item" href={exp.href}>
+          <pre class="selected-art" aria-hidden="true">{exp.art}</pre>
+          <div class="selected-meta">
+            <span class="num">{String(i + 1).padStart(2, "0")}</span>
+            <span class="cat">{exp.category}</span>
+          </div>
+          <h3>{exp.name}</h3>
+          <span class="open">OPEN <span aria-hidden="true">↗</span></span>
+        </a>
+      ))}
+    </div>
+  </section>
+</Base>
 
 <style>
-  :global(*) {
-    box-sizing: border-box;
-  }
-
-  :global(html),
-  :global(body) {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-    background: #090909;
-  }
-
-  main {
-    position: fixed;
-    inset: 0;
-    overflow: hidden;
-  }
-
-  .portrait {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    opacity: 0;
-    transform: scale(1.12);
-    filter: blur(18px);
-    transition:
-      opacity 1s ease,
-      transform 1.6s cubic-bezier(0.16, 1, 0.3, 1),
-      filter 1.4s ease;
-  }
-
-  :global(body.entered) .portrait {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
-  }
-
-  .hearts {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-  }
-
   .intro {
-    position: absolute;
-    z-index: 2;
-    inset: 0;
     display: grid;
-    place-items: center;
-    overflow: hidden;
-    background: #080808;
-    transition:
-      opacity 850ms ease,
-      transform 1.2s cubic-bezier(0.7, 0, 0.2, 1),
-      filter 1s ease;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+    min-height: min(78vh, 780px);
+    padding: clamp(2rem, 5vw, 4rem) 0 clamp(2rem, 4vw, 3.5rem);
   }
 
-  .intro.leaving {
-    opacity: 0;
-    transform: scale(1.7);
-    filter: blur(16px);
-    pointer-events: none;
-  }
-
-  .enter-button {
+  .intro-stage {
     position: relative;
-    z-index: 1;
-    padding: 1.1rem 2rem;
-    border: 1px solid #aaa;
-    border-radius: 999px;
-    color: #f5f5f5;
-    background: #222;
-    box-shadow: 0 0 24px rgb(255 255 255 / 12%);
-    font: 800 1.15rem/1.2 system-ui, sans-serif;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    animation: pulse 1.3s ease-in-out infinite alternate;
+    min-width: 0;
+    padding: 0.5rem 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(77, 255, 145, 0.07), transparent 66%);
   }
 
-  .enter-button:focus-visible {
-    outline: 3px solid white;
-    outline-offset: 6px;
+  .hero-art {
+    font-size: clamp(6px, 1.22vw, 16px);
+    line-height: 1.12;
+    min-height: 270px;
+    margin: 0 auto;
+    width: max-content;
+    max-width: 100%;
+    color: var(--green);
+    text-shadow: 0 0 9px rgba(77, 255, 145, 0.38);
   }
 
-  .love-burst {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+  .stage-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.6rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--line);
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    color: var(--dim);
+    text-transform: uppercase;
   }
 
-  :global(.burst-heart) {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    font-size: clamp(1.5rem, 5vw, 3.5rem);
-    line-height: 1;
-    animation: burst 1.15s cubic-bezier(0.15, 0.7, 0.25, 1) var(--delay) both;
+  .intro-copy { min-width: 0; }
+
+  .intro-copy h1 {
+    font-size: clamp(3rem, 8vw, 7rem);
+    line-height: 0.82;
+    letter-spacing: -0.07em;
+    font-weight: 800;
+    margin: 0 0 1.5rem;
+    white-space: nowrap;
+    animation: flicker 9s linear infinite;
   }
 
-  @keyframes pulse {
-    to {
-      transform: scale(1.08);
-      box-shadow: 0 0 32px rgb(255 255 255 / 25%);
-    }
+  .intro-copy h1 .slash { color: var(--green); text-shadow: 0 0 24px rgba(77, 255, 145, 0.4); }
+
+  .tagline {
+    font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+    letter-spacing: 0.19em;
+    line-height: 1.6;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--line);
+    max-width: 28ch;
   }
 
-  @keyframes burst {
-    from {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(0.2) rotate(0);
-    }
-    to {
-      opacity: 0;
-      transform: translate3d(var(--x), var(--y), 0) scale(1.2) rotate(720deg);
-    }
+  .lede {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.7;
+    max-width: 34ch;
   }
 
-  :global(.heart) {
-    position: absolute;
-    top: -3rem;
-    line-height: 1;
-    animation: fall linear forwards;
-    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 25%));
+  .intro-copy .btn { margin-top: 1.9rem; }
+
+  .scroll-cue {
+    display: block;
+    margin-top: 2.2rem;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
   }
 
-  @keyframes fall {
-    to {
-      transform: translate3d(var(--drift), 110vh, 0) rotate(360deg);
-    }
+  .selected {
+    padding-top: clamp(2.5rem, 6vw, 4.5rem);
+    border-top: 1px solid var(--line);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    :global(.heart),
-    :global(.burst-heart) {
-      display: none;
-    }
+  .selected-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+  }
 
-    .enter-button,
-    .portrait,
-    .intro {
-      animation: none;
-      transition-duration: 0.01ms;
-    }
+  .selected-head h2 {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .selected-head h2 span { color: var(--dim); }
+
+  .selected-head a {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--green);
+    border-bottom: 1px solid var(--line-hot);
+    padding-bottom: 2px;
+  }
+
+  .selected-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  .selected-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem;
+    background: var(--bg);
+    min-width: 0;
+    transition: background 160ms linear;
+  }
+
+  .selected-item:hover { background: var(--panel); }
+
+  .selected-art {
+    font-size: 9px;
+    line-height: 1.18;
+    color: var(--green);
+    opacity: 0.72;
+    height: 108px;
+    overflow: hidden;
+    white-space: pre;
+    text-shadow: 0 0 5px rgba(77, 255, 145, 0.25);
+    transition: opacity 160ms linear;
+  }
+
+  .selected-item:hover .selected-art { opacity: 1; }
+
+  .selected-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .selected-meta .num { color: var(--green); }
+
+  .selected-item h3 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .open {
+    margin-top: auto;
+    padding-top: 0.7rem;
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    color: var(--green);
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 160ms linear;
+  }
+
+  .selected-item:hover .open,
+  .selected-item:focus-visible .open { opacity: 1; }
+
+  @media (max-width: 980px) {
+    .intro { grid-template-columns: 1fr; min-height: 0; gap: 1.5rem; }
+    .intro-stage { order: 2; }
+    .hero-art { font-size: clamp(6px, 2.15vw, 12px); }
+    .selected-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 560px) {
+    .selected-grid { grid-template-columns: 1fr; }
+    .intro-copy h1 { font-size: clamp(2.6rem, 13vw, 4rem); }
+    .hero-art { font-size: 6px; }
   }
 </style>
+
+<script>
+  import { mountSphere } from "../engines/ascii/hero";
+
+  const art = document.getElementById("hero-art") as HTMLPreElement | null;
+  const stage = document.getElementById("hero-stage");
+  const clockEl = document.getElementById("hero-clock");
+
+  if (art && stage) mountSphere(art, stage);
+
+  if (clockEl) {
+    const start = performance.now();
+    window.setInterval(() => {
+      const seconds = (performance.now() - start) / 1000;
+      clockEl.textContent = `T+${seconds.toFixed(1).padStart(5, "0")}`;
+    }, 500);
+  }
+</script>
