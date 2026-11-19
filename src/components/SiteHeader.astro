@@ -24,7 +24,6 @@ const isCurrent = (href: string) =>
         <span>SOUND</span>
         <b id="sound-state">OFF</b>
       </button>
-      <input id="sound-vol" class="sound-vol" type="range" min="0" max="100" value="55" aria-label="Master volume" />
     </div>
   </div>
 </header>
@@ -34,26 +33,17 @@ const isCurrent = (href: string) =>
 
   const btn = document.getElementById("sound-toggle") as HTMLButtonElement | null;
   const state = document.getElementById("sound-state");
-  const vol = document.getElementById("sound-vol") as HTMLInputElement | null;
 
   function sync() {
     const on = audio.on;
     if (btn) btn.setAttribute("aria-pressed", String(on));
     if (state) state.textContent = on ? "ON" : "OFF";
     if (btn) btn.classList.toggle("is-on", on);
-    if (vol) {
-      vol.disabled = false;
-      vol.value = String(Math.round(audio.volume * 100));
-    }
   }
 
   btn?.addEventListener("click", async () => {
     await audio.toggle();
     sync();
-  });
-
-  vol?.addEventListener("input", () => {
-    audio.setVolume(Number(vol.value) / 100);
   });
 
   audio.subscribe(sync);

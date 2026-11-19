@@ -79,16 +79,21 @@ export function lifeArt(seed: number, w = 28, h = 8) {
   return finish(grid.map((row) => row.map((c) => (c ? (rand() > 0.4 ? "█" : "▓") : " "))));
 }
 
-export function mandelbrotArt(seed: number, w = 28, h = 8) {
+export function mandelbrotArt(seed: number, w = 28, h = 12) {
   const rand = rng(seed);
   const shift = Math.floor(rand() * 6);
+  const zoom = 0.7 + rand() * 0.6;
+  const centerX = -0.85 + (rand() - 0.5) * 0.8;
+  const centerY = (rand() - 0.5) * 0.5;
+  const spanX = 2.7 / zoom;
+  const spanY = spanX * (h / w) * 2.1;
   const ramp = " .:-=+*#%@";
   const rows: string[] = [];
   for (let py = 0; py < h; py++) {
     let line = "";
     for (let px = 0; px < w; px++) {
-      const cx = -2.1 + (px / w) * 2.9;
-      const cy = -1.05 + (py / h) * 2.1;
+      const cx = centerX + (px / w - 0.5) * spanX;
+      const cy = centerY + (py / h - 0.5) * spanY;
       let zx = 0;
       let zy = 0;
       let i = 0;
@@ -183,15 +188,18 @@ export function piArt(seed: number, w = 28, h = 8) {
   const buf = blank(w, h);
   const cx = (w - 1) / 2;
   const cy = (h - 1) / 2;
-  for (let i = 0; i < w * h * 2; i++) {
+  for (let i = 0; i < 90; i++) {
     const px = Math.floor(rand() * w);
     const py = Math.floor(rand() * h);
-    const dx = (px - cx) / (w / 2);
-    const dy = ((py - cy) / (h / 2)) * 0.55;
-    const d = Math.hypot(dx, dy);
-    if (Math.abs(d - 1) < 0.09) buf[py][px] = "O";
-    else if (d < 1) buf[py][px] = rand() > 0.35 ? "#" : "*";
+    const dx = (px - cx) / (w * 0.36);
+    const dy = (py - cy) / (h * 0.42);
+    if (Math.hypot(dx, dy) < 1) buf[py][px] = "*";
     else if (buf[py][px] === " ") buf[py][px] = ".";
+  }
+  for (let a = 0; a < Math.PI * 2; a += 0.04) {
+    const px = Math.round(cx + Math.cos(a) * w * 0.36);
+    const py = Math.round(cy + Math.sin(a) * h * 0.42);
+    if (px >= 0 && px < w && py >= 0 && py < h) buf[py][px] = "#";
   }
   return finish(buf);
 }
@@ -219,6 +227,106 @@ export function fourierArt(seed: number, w = 28, h = 8) {
     const py = Math.round(cy - (y / 1.4) * (h * 0.42));
     if (py >= 0 && py < h) buf[py][px] = "#";
     if ((px * 3 + seed) % 11 < 2 && py > 0 && py < h - 1) buf[py + 1][px] = ".";
+  }
+  return finish(buf);
+}
+
+/** Elementary cellular automaton cone. rule: 30 or 90. */
+export function ruleArt(rule: 30 | 90, seed: number, w = 28, h = 8) {
+  const rand = rng(seed);
+  let row = new Uint8Array(w);
+  row[w >> 1] = 1;
+  const out: string[] = [];
+  for (let y = 0; y < h; y++) {
+    out.push(Array.from(row, (c) => (c ? (rand() > 0.4 ? "█" : "▓") : " ")).join(""));
+    const next = new Uint8Array(w);
+    for (let x = 0; x < w; x++) {
+      const l = row[x - 1] ?? 0;
+      const c = row[x];
+      const r = row[x + 1] ?? 0;
+      next[x] = rule === 30 ? (30 >> ((l << 2) | (c << 1) | r)) & 1 : l ^ r;
+    }
+    row = next;
+  }
+  return out.join("\n");
+}
+
+/** Julia set for a seed-derived complex constant, distinct from Mandelbrot. */
+export function juliaArt(seed: number, w = 28, h = 12) {
+  const rand = rng(seed);
+  const cr = -0.85 + rand() * 0.5;
+  const ci = (rand() - 0.5) * 0.9;
+  const ramp = " .:-=+*#%@";
+  const rows: string[] = [];
+  for (let py = 0; py < h; py++) {
+    let line = "";
+    for (let px = 0; px < w; px++) {
+      let zx = -1.6 + (px / w) * 3.2;
+      let zy = -1 + (py / h) * 2;
+      let i = 0;
+      while (zx * zx + zy * zy <= 4 && i < 20) {
+        const t = zx * zx - zy * zy + cr;
+        zy = 2 * zx * zy + ci;
+        zx = t;
+        i++;
+      }
+      line += i === 20 ? ramp[ramp.length - 1] : ramp[Math.min(ramp.length - 1, Math.floor((i / 8) * ramp.length))];
+    }
+    rows.push(line);
+  }
+  return rows.join("\n");
+}
+
+/** Fibonacci staircase: columns grow by the sequence. */
+export function fibonacciArt(seed: number, w = 28, h = 8) {
+  const fib = [1, 1];
+  while (fib.length < w) fib.push(fib[fib.length - 1] + fib[fib.length - 2]);
+  const buf = blank(w, h);
+  const max = Math.log(fib[Math.min(w, fib.length) - 1] + 1);
+  const ink = seed % 2 ? "█" : "▓";
+  for (let c = 0; c < w; c++) {
+    const n = Math.log(fib[Math.min(c, fib.length - 1)] + 1);
+    const bar = Math.max(1, Math.round((n / max) * h));
+    for (let r = 0; r < bar; r++) buf[h - 1 - r][c] = r === bar - 1 ? "▒" : ink;
+  }
+  return finish(buf);
+}
+
+/** Two-source interference field. */
+export function sineArt(seed: number, w = 28, h = 8) {
+  const buf = blank(w, h);
+  const ramp = " .:-=+*#%@";
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const d1 = Math.hypot(x - (w >> 1), y - (h >> 1));
+      const v = Math.sin(d1 * 0.7 + seed) + Math.sin(x * 0.5 - y * 0.35) + Math.sin(y * 0.8 + seed * 0.7);
+      const t = (v + 3) / 6;
+      buf[y][x] = ramp[Math.max(0, Math.min(ramp.length - 1, Math.floor(t * ramp.length)))];
+    }
+  }
+  return finish(buf);
+}
+
+/** Lat-long sphere projection, visually distinct from the torus. */
+export function sphereArt(seed: number, w = 28, h = 8) {
+  const rand = rng(seed);
+  const buf = blank(w, h);
+  const rot = rand() * Math.PI * 2;
+  const cosR = Math.cos(rot);
+  const sinR = Math.sin(rot);
+  const count = 520;
+  for (let i = 0; i < count; i++) {
+    const y = 1 - (i / (count - 1)) * 2;
+    const r = Math.sqrt(Math.max(0, 1 - y * y));
+    const a = i * Math.PI * (3 - Math.sqrt(5));
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    const xr = x * cosR - z * sinR;
+    const zr = x * sinR + z * cosR;
+    const px = Math.round(w / 2 + xr * w * 0.36);
+    const py = Math.round(h / 2 - y * h * 0.42);
+    if (px < 0 || px >= w || py < 0 || py >= h) continue;
+    buf[py][px] = zr > 0.35 ? "█" : zr > -0.35 ? "▓" : "▒";
   }
   return finish(buf);
 }

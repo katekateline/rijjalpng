@@ -268,17 +268,6 @@ body::after {
   box-shadow: 0 0 8px var(--green-2);
 }
 
-.sound-vol {
-  width: 62px;
-  height: 16px;
-  accent-color: var(--green);
-  cursor: ew-resize;
-  opacity: 0.65;
-}
-
-.sound-vol:focus-visible { opacity: 1; }
-.sound-vol:disabled { opacity: 0.3; }
-
 .dot {
   width: 5px;
   height: 5px;

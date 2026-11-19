@@ -1,4 +1,4 @@
-import { barsArt, fourierArt, goldenArt, lifeArt, lissajousArt, mandelbrotArt, mazeArt, piArt, torusArt } from "../engines/ascii/art";
+import { barsArt, fibonacciArt, fourierArt, goldenArt, juliaArt, lifeArt, lissajousArt, mandelbrotArt, mazeArt, piArt, ruleArt, sineArt, sphereArt, torusArt } from "../engines/ascii/art";
 
 export type Category = "SORTING" | "PATHFINDING" | "CELLULAR" | "MATHEMATICAL WONDERS" | "ASCII FIELDS" | "3D / RAYMARCHING";
 
@@ -34,18 +34,18 @@ export const experiments: Experiment[] = [
   { id: "bfs", name: "Breadth-First", href: "/experiments/pathfinding/?algo=bfs", category: "PATHFINDING", difficulty: "LOW", desc: "Rings of discovery. Shortest path guaranteed.", art: mazeArt(41) },
   { id: "dfs", name: "Depth-First", href: "/experiments/pathfinding/?algo=dfs", category: "PATHFINDING", difficulty: "LOW", desc: "One thread, followed to its dead end.", art: mazeArt(59) },
   { id: "life", name: "Game of Life", href: "/experiments/cellular/?mode=life", category: "CELLULAR", difficulty: "LOW", desc: "Four rules. Infinite behaviour.", art: lifeArt(5) },
-  { id: "rule30", name: "Rule 30", href: "/experiments/cellular/?mode=rule30", category: "CELLULAR", difficulty: "LOW", desc: "One row of bits. Deterministic chaos.", art: lifeArt(17) },
-  { id: "rule90", name: "Rule 90", href: "/experiments/cellular/?mode=rule90", category: "CELLULAR", difficulty: "LOW", desc: "XOR neighbourhoods. Sierpinski echoes.", art: lifeArt(31) },
+  { id: "rule30", name: "Rule 30", href: "/experiments/cellular/?mode=rule30", category: "CELLULAR", difficulty: "LOW", desc: "One row of bits. Deterministic chaos.", art: ruleArt(30, 17) },
+  { id: "rule90", name: "Rule 90", href: "/experiments/cellular/?mode=rule90", category: "CELLULAR", difficulty: "LOW", desc: "XOR neighbourhoods. Sierpinski echoes.", art: ruleArt(90, 31) },
   { id: "golden", name: "Golden Ratio", href: "/experiments/wonders/?exp=golden", category: "MATHEMATICAL WONDERS", difficulty: "LOW", desc: "A proportion that spirals into itself.", art: goldenArt(4) },
   { id: "pi", name: "Pi / Monte Carlo", href: "/experiments/wonders/?exp=pi", category: "MATHEMATICAL WONDERS", difficulty: "LOW", desc: "Random rain inside a circle estimates π.", art: piArt(8) },
-  { id: "fibonacci", name: "Fibonacci Sequence", href: "/experiments/wonders/?exp=fibonacci", category: "MATHEMATICAL WONDERS", difficulty: "LOW", desc: "Squares that grow toward the golden mean.", art: goldenArt(21) },
+  { id: "fibonacci", name: "Fibonacci Sequence", href: "/experiments/wonders/?exp=fibonacci", category: "MATHEMATICAL WONDERS", difficulty: "LOW", desc: "Squares that grow toward the golden mean.", art: fibonacciArt(21) },
   { id: "fractal", name: "Mandelbrot Explorer", href: "/experiments/wonders/?exp=mandelbrot", category: "MATHEMATICAL WONDERS", difficulty: "MED", desc: "Pan and zoom into an infinite boundary.", art: mandelbrotArt(3) },
-  { id: "julia-orbit", name: "Julia Explorer", href: "/experiments/wonders/?exp=julia", category: "MATHEMATICAL WONDERS", difficulty: "HIGH", desc: "Orbits of c, painted as organic density.", art: mandelbrotArt(13) },
+  { id: "julia-orbit", name: "Julia Explorer", href: "/experiments/wonders/?exp=julia", category: "MATHEMATICAL WONDERS", difficulty: "HIGH", desc: "Orbits of c, painted as organic density.", art: juliaArt(13) },
   { id: "lissajous", name: "Lissajous Curves", href: "/experiments/wonders/?exp=lissajous", category: "MATHEMATICAL WONDERS", difficulty: "LOW", desc: "Two sines, one ribbon of light.", art: lissajousArt(6) },
   { id: "fourier", name: "Fourier Series", href: "/experiments/wonders/?exp=fourier", category: "MATHEMATICAL WONDERS", difficulty: "MED", desc: "Rotating circles that draw a waveform.", art: fourierArt(5) },
   { id: "mandelbrot-field", name: "Mandelbrot Field", href: "/experiments/mathematics/?exp=mandelbrot", category: "ASCII FIELDS", difficulty: "MED", desc: "The boundary that never resolves, in glyphs.", art: mandelbrotArt(23) },
-  { id: "julia-field", name: "Julia Field", href: "/experiments/mathematics/?exp=julia", category: "ASCII FIELDS", difficulty: "MED", desc: "A family portrait in character density.", art: mandelbrotArt(33) },
-  { id: "sine", name: "Sine Wave Field", href: "/experiments/mathematics/?exp=sine", category: "ASCII FIELDS", difficulty: "LOW", desc: "Interfering oscillations sampled into glyphs.", art: mandelbrotArt(43) },
+  { id: "julia-field", name: "Julia Field", href: "/experiments/mathematics/?exp=julia", category: "ASCII FIELDS", difficulty: "MED", desc: "A family portrait in character density.", art: juliaArt(33) },
+  { id: "sine", name: "Sine Wave Field", href: "/experiments/mathematics/?exp=sine", category: "ASCII FIELDS", difficulty: "LOW", desc: "Interfering oscillations sampled into glyphs.", art: sineArt(43) },
   { id: "torus", name: "Rotating Torus", href: "/experiments/mathematics/?exp=torus", category: "3D / RAYMARCHING", difficulty: "HIGH", desc: "A donut of points, projected to a text grid.", art: torusArt(37) },
-  { id: "sphere", name: "Void Sphere", href: "/#hero", category: "3D / RAYMARCHING", difficulty: "HIGH", desc: "The landing composition. A sphere of characters, always turning.", art: torusArt(53) },
+  { id: "sphere", name: "Void Sphere", href: "/#hero", category: "3D / RAYMARCHING", difficulty: "HIGH", desc: "The landing composition. A sphere of characters, always turning.", art: sphereArt(53) },
 ];

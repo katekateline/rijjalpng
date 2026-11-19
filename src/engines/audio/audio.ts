@@ -4,7 +4,6 @@
 type Listener = (on: boolean) => void;
 
 const STORE_ON = "sv.sound";
-const STORE_VOL = "sv.volume";
 
 function read(key: string) {
   try {
@@ -35,8 +34,6 @@ class Synth {
   constructor() {
     if (typeof window === "undefined") return;
     this._on = read(STORE_ON) !== "off";
-    const stored = Number(read(STORE_VOL));
-    if (Number.isFinite(stored) && stored >= 0 && stored <= 1) this._volume = stored;
 
     // Sound defaults on, but browsers require a gesture before audio can start.
     if (this._on) {
@@ -50,10 +47,6 @@ class Synth {
 
   get on() {
     return this._on;
-  }
-
-  get volume() {
-    return this._volume;
   }
 
   subscribe(fn: Listener) {
@@ -108,14 +101,6 @@ class Synth {
       }, 120);
     }
     this.emit();
-  }
-
-  setVolume(v: number) {
-    this._volume = Math.max(0, Math.min(1, v));
-    write(STORE_VOL, String(this._volume));
-    if (this.ctx && this.master && this._on) {
-      this.master.gain.setTargetAtTime(this._volume, this.ctx.currentTime, 0.02);
-    }
   }
 
   private ready() {
