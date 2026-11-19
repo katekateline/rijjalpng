@@ -147,7 +147,7 @@ export function drawGolden(
   opts: { depth: number; animate: boolean },
 ) {
   fillBg(ctx, w, h);
-  const reveal = opts.animate ? (t * 0.18) % 1 : 1;
+  const reveal = opts.animate ? Math.min(1, t * 0.18) : 1;
   drawSquares(ctx, w, h, opts.depth, reveal, null);
 
   ctx.fillStyle = "rgba(163, 255, 120, 0.65)";
@@ -171,7 +171,7 @@ export function drawFibonacci(
   opts: { count: number; animate: boolean },
 ) {
   fillBg(ctx, w, h);
-  const reveal = opts.animate ? (t * 0.14) % 1 : 1;
+  const reveal = opts.animate ? Math.min(1, t * 0.14) : 1;
   drawSquares(ctx, w, h, opts.count, reveal, fibonacciNumbers(opts.count));
 }
 

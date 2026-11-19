@@ -26,7 +26,7 @@ class Synth {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private listeners = new Set<Listener>();
-  private _on = false;
+  private _on = true;
   private _volume = 0.55;
   private lastTone = 0;
   private lastVisit = 0;
@@ -34,9 +34,18 @@ class Synth {
 
   constructor() {
     if (typeof window === "undefined") return;
-    this._on = read(STORE_ON) === "on";
+    this._on = read(STORE_ON) !== "off";
     const stored = Number(read(STORE_VOL));
     if (Number.isFinite(stored) && stored >= 0 && stored <= 1) this._volume = stored;
+
+    // Sound defaults on, but browsers require a gesture before audio can start.
+    if (this._on) {
+      const unlock = () => {
+        if (this._on) void this.enable();
+      };
+      window.addEventListener("pointerdown", unlock, { once: true });
+      window.addEventListener("keydown", unlock, { once: true });
+    }
   }
 
   get on() {

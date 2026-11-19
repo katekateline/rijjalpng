@@ -447,6 +447,8 @@ import Base from "../../layouts/Base.astro";
 
   const isFractal = () => mode === "mandelbrot" || mode === "julia";
   const num = (key: string) => Number(values[key]);
+  const BUILD_RATE: Partial<Record<WonderId, number>> = { golden: 0.18, fibonacci: 0.14 };
+  const built = () => (BUILD_RATE[mode] ? time >= 1 / BUILD_RATE[mode]! : false);
 
   function defaults() {
     values = {};
@@ -623,7 +625,7 @@ import Base from "../../layouts/Base.astro";
     statFormula.textContent = MODES[mode].formula;
     stateEl.textContent = playing ? "RENDERING" : time > 0 ? "PAUSED" : "READY";
     opEl.textContent = isFractal() ? (renderMs > 0 ? `RENDER ${renderMs.toFixed(1)}ms` : `T+${time.toFixed(2)}s`) : `T+${time.toFixed(2)}s`;
-    playBtn.textContent = playing ? "❚❚ PAUSE" : isFractal() ? "▶ AUTO ZOOM" : time > 0 ? "▶ RESUME" : "▶ RUN";
+    playBtn.textContent = playing ? "❚❚ PAUSE" : built() ? "▶ REPLAY" : isFractal() ? "▶ AUTO ZOOM" : time > 0 ? "▶ RESUME" : "▶ RUN";
   }
 
   function step(dt: number) {
@@ -666,11 +668,16 @@ import Base from "../../layouts/Base.astro";
       autoAcc = 0;
     }
     step(dt);
+    if (built()) {
+      stop();
+      return;
+    }
     raf = requestAnimationFrame(frame);
   }
 
   function play() {
     if (playing) return;
+    if (built()) time = 0;
     playing = true;
     last = 0;
     cancelAnimationFrame(raf);
